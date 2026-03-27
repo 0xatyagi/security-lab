@@ -7,7 +7,7 @@
 | **MITRE ATT&CK** | T1611 — Escape to Host |
 | **Tools** | `hadolint`, `dockle`, `docker inspect`, `trivy` |
 | **CVE Reference** | CVE-2019-5736 (runc container escape — requires root in container) |
-| **Time to Complete** | ~20 minutes |
+
 
 ---
 
@@ -256,4 +256,3 @@ docker rmi vuln-root-app fixed-root-app
 
 ---
 
-[← Phase 1 Overview](./README.md) | [Lab 02 →](./lab02-latest-untagged-images.md)
