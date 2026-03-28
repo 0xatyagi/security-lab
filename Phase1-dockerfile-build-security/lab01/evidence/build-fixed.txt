@@ -1,0 +1,80 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from fixed.Dockerfile
+#1 transferring dockerfile: 598B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 ...
+
+#3 [auth] library/python:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 1.8s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 10.94kB done
+#5 DONE 0.0s
+
+#6 [1/6] FROM docker.io/library/python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+#6 resolve docker.io/library/python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4 0.0s done
+#6 DONE 0.0s
+
+#7 [2/6] WORKDIR /app
+#7 CACHED
+
+#8 [3/6] RUN groupadd --gid 1001 appgroup &&     useradd --uid 1001             --gid appgroup             --shell /bin/false             --no-create-home             appuser
+#8 DONE 0.1s
+
+#9 [4/6] COPY requirements.txt .
+#9 DONE 0.0s
+
+#10 [5/6] RUN pip install --no-cache-dir -r requirements.txt
+#10 0.836 Collecting flask==3.0.3 (from -r requirements.txt (line 1))
+#10 0.918   Downloading flask-3.0.3-py3-none-any.whl.metadata (3.2 kB)
+#10 0.945 Collecting Werkzeug>=3.0.0 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 0.954   Downloading werkzeug-3.1.7-py3-none-any.whl.metadata (4.0 kB)
+#10 0.973 Collecting Jinja2>=3.1.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 0.986   Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+#10 1.001 Collecting itsdangerous>=2.1.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 1.012   Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+#10 1.032 Collecting click>=8.1.3 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 1.046   Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+#10 1.064 Collecting blinker>=1.6.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 1.084   Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+#10 1.134 Collecting MarkupSafe>=2.0 (from Jinja2>=3.1.2->flask==3.0.3->-r requirements.txt (line 1))
+#10 1.145   Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (2.7 kB)
+#10 1.159 Downloading flask-3.0.3-py3-none-any.whl (101 kB)
+#10 1.191 Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+#10 1.201 Downloading click-8.3.1-py3-none-any.whl (108 kB)
+#10 1.221 Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+#10 1.230 Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+#10 1.251 Downloading werkzeug-3.1.7-py3-none-any.whl (226 kB)
+#10 1.291 Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (24 kB)
+#10 1.306 Installing collected packages: MarkupSafe, itsdangerous, click, blinker, Werkzeug, Jinja2, flask
+#10 1.492 Successfully installed Jinja2-3.1.6 MarkupSafe-3.0.3 Werkzeug-3.1.7 blinker-1.9.0 click-8.3.1 flask-3.0.3 itsdangerous-2.2.0
+#10 1.492 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#10 1.569 
+#10 1.569 [notice] A new release of pip is available: 25.0.1 -> 26.0.1
+#10 1.569 [notice] To update, run: pip install --upgrade pip
+#10 DONE 1.6s
+
+#11 [6/6] COPY --chown=appuser:appgroup . .
+#11 DONE 0.0s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 0.3s done
+#12 exporting manifest sha256:7ba06c9d8aec4c393e25e3f58e0f6d388952cb4f628a262586befa246a1a2cf5
+#12 exporting manifest sha256:7ba06c9d8aec4c393e25e3f58e0f6d388952cb4f628a262586befa246a1a2cf5 done
+#12 exporting config sha256:a8ecc9e87bbefb11586e2fa2afd8a6db4f5f2547c9dcdd4a36356ab4edd8889d done
+#12 exporting attestation manifest sha256:195adb7bae397ff4256df5ee8b53e8c2f365eeb6fd82a3b192bade9a8350f703 done
+#12 exporting manifest list sha256:479227c2d23b6bbd95dd7546e951ec3ea606bb50d977b3258e62203fc90306be done
+#12 naming to docker.io/library/lab01-fixed:latest done
+#12 unpacking to docker.io/library/lab01-fixed:latest 0.1s done
+#12 DONE 0.4s
