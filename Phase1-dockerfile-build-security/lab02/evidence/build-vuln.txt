@@ -1,0 +1,48 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from vuln.Dockerfile
+#1 transferring dockerfile: 243B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 ...
+
+#3 [auth] library/python:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 5.6s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [1/5] FROM docker.io/library/python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+#5 resolve docker.io/library/python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4 0.0s done
+#5 DONE 0.0s
+
+#6 [internal] load build context
+#6 transferring context: 37.02kB done
+#6 DONE 0.0s
+
+#7 [2/5] WORKDIR /app
+#7 CACHED
+
+#8 [3/5] COPY requirements.txt .
+#8 CACHED
+
+#9 [4/5] RUN pip install --no-cache-dir -r requirements.txt
+#9 CACHED
+
+#10 [5/5] COPY . .
+#10 DONE 0.0s
+
+#11 exporting to image
+#11 exporting layers 0.0s done
+#11 exporting manifest sha256:400a6d83721b8089e8a9c596175797bf0fc3d75d1847ce95d16f0b5114cd84a1 done
+#11 exporting config sha256:3344f291b5dc1f59ff54f56935d3d13cfe123e1e3a9521b6ef58172ecce3d801 done
+#11 exporting attestation manifest sha256:b9f9ca217ba0fac6e050fbe8598221de6abc03ff097b636823a36798395f453b done
+#11 exporting manifest list sha256:f70c335336ed210c477a7e160b8f3304f369319a85229a9b4201dbf95b83be40 done
+#11 naming to docker.io/library/lab02-vuln:latest done
+#11 unpacking to docker.io/library/lab02-vuln:latest done
+#11 DONE 0.1s
