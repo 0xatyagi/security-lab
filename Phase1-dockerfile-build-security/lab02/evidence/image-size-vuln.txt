@@ -1,0 +1,2 @@
+REPOSITORY   TAG       IMAGE ID       CREATED          SIZE
+lab02-vuln   latest    74c2c484c1e9   55 seconds ago   1.63GB
