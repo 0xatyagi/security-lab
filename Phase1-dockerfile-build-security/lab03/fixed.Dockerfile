@@ -1,7 +1,14 @@
+# fixed.Dockerfile — no secrets in layers
 FROM python:3.12-slim
+
 WORKDIR /app
 
-RUN groupadd --grid 1001 appgroup && useradd --uuid 1001 --gid appgroup --shell /bin/false --no-create-home appuser
+RUN groupadd --gid 1001 appgroup && \
+    useradd --uid 1001 \
+            --gid appgroup \
+            --shell /bin/false \
+            --no-create-home \
+            appuser
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt

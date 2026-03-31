@@ -1,0 +1,20 @@
+[31mFATAL[0m	- [36mDKL-DI-0005[0m: Clear apt-get caches
+	* Use 'rm -rf /var/lib/apt/lists' after 'apt-get install|update' : RUN /bin/sh -c set -eux; 	apt-get update; 	apt-get install -y --no-install-recommends 		ca-certificates 		netbase 		tzdata 	; 	apt-get dist-clean # buildkit
+[33mWARN[0m	- [36mDKL-DI-0006[0m: Avoid latest tag
+	* Avoid 'latest' tag
+[35mINFO[0m	- [36mCIS-DI-0005[0m: Enable Content trust for Docker
+	* export DOCKER_CONTENT_TRUST=1 before docker pull/build
+[35mINFO[0m	- [36mCIS-DI-0006[0m: Add HEALTHCHECK instruction to the container image
+	* not found HEALTHCHECK statement
+[35mINFO[0m	- [36mCIS-DI-0008[0m: Confirm safety of setuid/setgid files
+	* setuid file: urwxr-xr-x usr/bin/mount
+	* setuid file: urwxr-xr-x usr/bin/umount
+	* setgid file: grwxr-xr-x usr/sbin/unix_chkpwd
+	* setuid file: urwxr-xr-x usr/bin/passwd
+	* setuid file: urwxr-xr-x usr/bin/newgrp
+	* setuid file: urwxr-xr-x usr/bin/chfn
+	* setuid file: urwxr-xr-x usr/bin/gpasswd
+	* setgid file: grwxr-xr-x usr/bin/expiry
+	* setgid file: grwxr-xr-x usr/bin/chage
+	* setuid file: urwxr-xr-x usr/bin/chsh
+	* setuid file: urwxr-xr-x usr/bin/su
