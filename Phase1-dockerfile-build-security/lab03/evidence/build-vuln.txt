@@ -1,0 +1,80 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from vuln.Dockerfile
+#1 transferring dockerfile: 557B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12-slim
+#2 DONE 1.5s
+
+#3 [internal] load .dockerignore
+#3 transferring context: 2B done
+#3 DONE 0.0s
+
+#4 [1/7] FROM docker.io/library/python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4
+#4 resolve docker.io/library/python:3.12-slim@sha256:3d5ed973e45820f5ba5e46bd065bd88b3a504ff0724d85980dcd05eab361fcf4 done
+#4 DONE 0.0s
+
+#5 [2/7] WORKDIR /app
+#5 CACHED
+
+#6 [internal] load build context
+#6 transferring context: 247B done
+#6 DONE 0.0s
+
+#7 [3/7] COPY .env ./
+#7 DONE 0.0s
+
+#8 [4/7] COPY requirements.txt .
+#8 DONE 0.0s
+
+#9 [5/7] RUN pip install --no-cache-dir -r requirements.txt
+#9 0.950 Collecting flask==3.0.3 (from -r requirements.txt (line 1))
+#9 1.027   Downloading flask-3.0.3-py3-none-any.whl.metadata (3.2 kB)
+#9 1.055 Collecting Werkzeug>=3.0.0 (from flask==3.0.3->-r requirements.txt (line 1))
+#9 1.065   Downloading werkzeug-3.1.7-py3-none-any.whl.metadata (4.0 kB)
+#9 1.080 Collecting Jinja2>=3.1.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#9 1.091   Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+#9 1.107 Collecting itsdangerous>=2.1.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#9 1.117   Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+#9 1.137 Collecting click>=8.1.3 (from flask==3.0.3->-r requirements.txt (line 1))
+#9 1.147   Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+#9 1.158 Collecting blinker>=1.6.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#9 1.168   Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+#9 1.228 Collecting MarkupSafe>=2.0 (from Jinja2>=3.1.2->flask==3.0.3->-r requirements.txt (line 1))
+#9 1.239   Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (2.7 kB)
+#9 1.253 Downloading flask-3.0.3-py3-none-any.whl (101 kB)
+#9 1.301 Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+#9 1.312 Downloading click-8.3.1-py3-none-any.whl (108 kB)
+#9 1.353 Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+#9 1.369 Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+#9 1.407 Downloading werkzeug-3.1.7-py3-none-any.whl (226 kB)
+#9 1.457 Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (24 kB)
+#9 1.477 Installing collected packages: MarkupSafe, itsdangerous, click, blinker, Werkzeug, Jinja2, flask
+#9 1.654 Successfully installed Jinja2-3.1.6 MarkupSafe-3.0.3 Werkzeug-3.1.7 blinker-1.9.0 click-8.3.1 flask-3.0.3 itsdangerous-2.2.0
+#9 1.654 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#9 1.728 
+#9 1.728 [notice] A new release of pip is available: 25.0.1 -> 26.0.1
+#9 1.728 [notice] To update, run: pip install --upgrade pip
+#9 DONE 1.8s
+
+#10 [6/7] COPY app.py .
+#10 DONE 0.0s
+
+#11 [7/7] RUN rm -f .env
+#11 DONE 0.1s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 0.3s done
+#12 exporting manifest sha256:3815df896319d035fe47616da96293509b25a7fbe7299a024050e8edb70705a3
+#12 exporting manifest sha256:3815df896319d035fe47616da96293509b25a7fbe7299a024050e8edb70705a3 done
+#12 exporting config sha256:348ee32affe7f1f15f71b9c85f17dd4bab4ea57ef7f173458b1d348af64e60d0 done
+#12 exporting attestation manifest sha256:6845986f195ca03aeef0c58329c4fd9a06a637abb8b82e305274b3779ccb29d5 done
+#12 exporting manifest list sha256:e4851a420e2b4f72b513e1b094c3753c99a64874e9e4dec8f3506be866c81b8b done
+#12 naming to docker.io/library/lab03-vuln:latest done
+#12 unpacking to docker.io/library/lab03-vuln:latest 0.1s done
+#12 DONE 0.4s
+
+ [33m1 warning found (use docker --debug to expand):
+[0m - SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "DB_PASSWORD") (line 7)
