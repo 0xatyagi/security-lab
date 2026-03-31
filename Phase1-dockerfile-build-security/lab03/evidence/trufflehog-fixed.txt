@@ -1,0 +1,20 @@
+Found unverified result 🐷🔑❓
+Detector Type: URI
+Decoder Type: PLAIN
+Raw result: http://username:password@host.com:80
+File: /usr/local/lib/python3.12/site-packages/pip/_vendor/urllib3/util/__pycache__/url.cpython-312.pyc
+Image: /tmp/lab03-fixed.tar
+--
+Found unverified result 🐷🔑❓
+(Verification info cached)
+Detector Type: URI
+Decoder Type: PLAIN
+Raw result: http://username:password@host.com:80
+File: /usr/local/lib/python3.12/site-packages/pip/_vendor/urllib3/util/url.py
+--
+Found unverified result 🐷🔑❓
+Detector Type: Box
+Decoder Type: PLAIN
+Raw result: 4f8872954327c3e11544372df11503c0
+File: /var/lib/dpkg/info/libc6:arm64.md5sums
+Image: /tmp/lab03-fixed.tar

@@ -273,26 +273,7 @@ Our `DATABASE_URL` and `DB_PASSWORD` are completely absent from the fixed image.
 | `CIS-DI-0010` dockle | 🔴 FATAL | ✅ Resolved |
 | `CIS-DI-0001` dockle | ⚠️ WARN | ✅ Resolved |
 
----
 
-## Interview Corner
-
-**Q: Why doesn't `RUN rm -f .env` protect the secret?**
-Docker layers are content-addressable and append-only. `RUN rm .env` creates a new layer with a whiteout marker — it hides the file from the running container's filesystem view, but the original layer containing `.env` is still part of the image manifest. Anyone who runs `docker save` and extracts the layer tar gets the file. The layer model is additive; deletion only hides, never destroys.
-
-**Q: What's the difference between `ARG` and `ENV` for secrets — which is safer?**
-Neither is safe. `ENV` values persist in the image metadata and are visible to running containers via environment variables and `docker inspect`. `ARG` values are build-time only and don't appear as runtime environment variables — but they are still permanently recorded in `docker history --no-trunc` as the build command that used them. Both are readable by anyone with access to the image. The only safe pattern is BuildKit `--mount=type=secret`.
-
-**Q: How does BuildKit `--mount=type=secret` work differently?**
-BuildKit mounts secrets as `tmpfs` — an in-memory filesystem that exists only during that specific `RUN` instruction's execution. The secret is never written to the overlay filesystem and never becomes part of any layer. `docker history` shows only the `RUN` command text, not the secret value. After the `RUN` completes, the tmpfs is unmounted and the secret is gone from the build environment entirely.
-
-**Q: trufflehog found 3 results on the fixed image — is it still vulnerable?**
-No. All 3 are base image false positives: a placeholder URL (`http://username:password@host.com:80`) in pip's urllib3 source code, and an MD5 checksum in libc6 package metadata. Neither is a real credential. This is an important real-world skill — distinguishing true positives from false positives in automated scan output. The key question is: does the raw result look like a real credential for a real system? A placeholder URL in a library's test code is not.
-
-**Q: A developer says "we delete the secret in a later RUN step — it's fine." How do you respond?**
-Run `docker history --no-trunc <image> | grep -i password` and show them the credential in plain text. Then run `trufflehog docker` and show them the finding with the specific layer hash. The misconception is treating Dockerfiles like shell scripts where `rm` destroys data. In Docker, layers are permanent records — deletion is a new record that says "hide this," not "destroy this." The proof takes 30 seconds to produce.
-
----
 
 ## Cleanup
 
@@ -302,6 +283,3 @@ rm -f /tmp/lab03-vuln.tar /tmp/lab03-fixed.tar
 rm -rf /tmp/lab03-extract
 ```
 
----
-
-[← Lab 02](../lab02/lab02-latest-untagged-images.md) | [Lab 04 →](../lab04/lab04-bloated-images.md)
