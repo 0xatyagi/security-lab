@@ -1,0 +1,47 @@
+🐷🔑🐷  TruffleHog. Unearth your secrets. 🐷🔑🐷
+
+2026-03-31T12:04:05+05:30	info-0	trufflehog	running source	{"source_manager_worker_id": "MmORY", "with_units": false, "target_count": 0, "source_manager_units_configurable": true}
+Found unverified result 🐷🔑❓
+Verification issue: lookup db.prod.internal: no such host
+Detector Type: Postgres
+Decoder Type: PLAIN
+Raw result: postgres://admin:s3cretP@ssw0rd@db.prod.internal:5432
+Sslmode: <unset>
+File: /app/.env
+Image: /tmp/lab03-vuln.tar
+Layer: sha256:fa73ee1a594cd2afbd03bbeda29bd03d2d9f4b45431d48b33c5e175e5cc35f01
+
+Found unverified result 🐷🔑❓
+Verification issue: lookup db.prod.internal: no such host
+Detector Type: Postgres
+Decoder Type: PLAIN
+Raw result: postgres://admin:s3cr3t@P@ssw0rd@db.prod.internal:5432
+Sslmode: <unset>
+File: image-metadata:history:12:created-by
+Image: /tmp/lab03-vuln.tar
+
+Found unverified result 🐷🔑❓
+Detector Type: URI
+Decoder Type: PLAIN
+Raw result: http://username:password@host.com:80
+File: /usr/local/lib/python3.12/site-packages/pip/_vendor/urllib3/util/__pycache__/url.cpython-312.pyc
+Image: /tmp/lab03-vuln.tar
+Layer: sha256:395145a7396a1d1c2a7db16adaec7eace7174757185ebefa6e6c6c7c45ac1988
+
+Found unverified result 🐷🔑❓
+Detector Type: URI
+Decoder Type: PLAIN
+Raw result: http://username:password@host.com:80
+File: /usr/local/lib/python3.12/site-packages/pip/_vendor/urllib3/util/url.py
+Image: /tmp/lab03-vuln.tar
+Layer: sha256:41a4e6de4142a847fa7584df94edde84d614ab41183e6b7104afe114b9bc7d07
+
+Found unverified result 🐷🔑❓
+Detector Type: Box
+Decoder Type: PLAIN
+Raw result: 4f8872954327c3e11544372df11503c0
+File: /var/lib/dpkg/info/libc6:arm64.md5sums
+Image: /tmp/lab03-vuln.tar
+Layer: sha256:f4badedbec24858ef2dc51256f6418328e305e9c3c5a5e093581f83425618bd5
+
+2026-03-31T12:04:07+05:30	info-0	trufflehog	finished scanning	{"chunks": 10664, "bytes": 172935154, "verified_secrets": 0, "unverified_secrets": 5, "scan_duration": "1.86854825s", "trufflehog_version": "3.94.1", "verification_caching": {"Hits":0,"Misses":5,"HitsWasted":0,"AttemptsSaved":0,"VerificationTimeSpentMS":2046}}
