@@ -1,0 +1,107 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from vuln.Dockerfile
+#1 transferring dockerfile: 505B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.11-slim
+#2 ...
+
+#3 [auth] library/python:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.11-slim
+#2 DONE 3.4s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 63B done
+#5 DONE 0.0s
+
+#6 [1/6] FROM docker.io/library/python:3.11-slim@sha256:9358444059ed78e2975ada2c189f1c1a3144a5dab6f35bff8c981afb38946634
+#6 resolve docker.io/library/python:3.11-slim@sha256:9358444059ed78e2975ada2c189f1c1a3144a5dab6f35bff8c981afb38946634 0.0s done
+#6 sha256:ccdb4a613b5ce528e7385f571fafed3702a7390a0adbd685508a926f0db5f649 0B / 249B 0.2s
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 0B / 14.32MB 0.2s
+#6 sha256:b4822ed67dff6dee67342a10debf327642a6d8f6a65b7080bbf4d3d8e048e6fc 0B / 1.27MB 0.2s
+#6 sha256:ccdb4a613b5ce528e7385f571fafed3702a7390a0adbd685508a926f0db5f649 249B / 249B 0.6s done
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 1.05MB / 14.32MB 1.2s
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 2.10MB / 14.32MB 1.4s
+#6 sha256:b4822ed67dff6dee67342a10debf327642a6d8f6a65b7080bbf4d3d8e048e6fc 1.27MB / 1.27MB 1.6s done
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 4.19MB / 14.32MB 1.8s
+#6 extracting sha256:b4822ed67dff6dee67342a10debf327642a6d8f6a65b7080bbf4d3d8e048e6fc 0.0s done
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 5.24MB / 14.32MB 2.0s
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 6.29MB / 14.32MB 2.1s
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 8.39MB / 14.32MB 2.3s
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 9.44MB / 14.32MB 2.4s
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 10.49MB / 14.32MB 2.6s
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 12.58MB / 14.32MB 2.7s
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 14.32MB / 14.32MB 2.9s
+#6 sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 14.32MB / 14.32MB 2.9s done
+#6 extracting sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b
+#6 extracting sha256:d6c44f24ac6d3ed8e0f59c89c5dd485f80db5404d3710e5289d970d53889f49b 0.2s done
+#6 DONE 3.1s
+
+#6 [1/6] FROM docker.io/library/python:3.11-slim@sha256:9358444059ed78e2975ada2c189f1c1a3144a5dab6f35bff8c981afb38946634
+#6 extracting sha256:ccdb4a613b5ce528e7385f571fafed3702a7390a0adbd685508a926f0db5f649 done
+#6 DONE 3.1s
+
+#7 [2/6] WORKDIR /app
+#7 DONE 0.1s
+
+#8 [3/6] RUN groupadd --gid 1001 appgroup &&     useradd --uid 1001             --gid appgroup             --shell /bin/false             --no-create-home             appuser
+#8 DONE 0.2s
+
+#9 [4/6] COPY requirements.txt .
+#9 DONE 0.0s
+
+#10 [5/6] RUN pip install --no-cache-dir -r requirements.txt
+#10 0.922 Collecting flask==3.0.3 (from -r requirements.txt (line 1))
+#10 0.986   Downloading flask-3.0.3-py3-none-any.whl.metadata (3.2 kB)
+#10 1.011 Collecting Werkzeug>=3.0.0 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 1.019   Downloading werkzeug-3.1.8-py3-none-any.whl.metadata (4.0 kB)
+#10 1.034 Collecting Jinja2>=3.1.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 1.040   Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+#10 1.054 Collecting itsdangerous>=2.1.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 1.062   Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+#10 1.078 Collecting click>=8.1.3 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 1.088   Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+#10 1.104 Collecting blinker>=1.6.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 1.113   Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+#10 1.197 Collecting MarkupSafe>=2.0 (from Jinja2>=3.1.2->flask==3.0.3->-r requirements.txt (line 1))
+#10 1.206   Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (2.7 kB)
+#10 1.220 Downloading flask-3.0.3-py3-none-any.whl (101 kB)
+#10 1.248    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 101.7/101.7 kB 4.4 MB/s eta 0:00:00
+#10 1.257 Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+#10 1.266 Downloading click-8.3.1-py3-none-any.whl (108 kB)
+#10 1.285    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 108.3/108.3 kB 5.6 MB/s eta 0:00:00
+#10 1.295 Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+#10 1.306 Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+#10 1.318    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 134.9/134.9 kB 11.9 MB/s eta 0:00:00
+#10 1.327 Downloading werkzeug-3.1.8-py3-none-any.whl (226 kB)
+#10 1.344    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 226.5/226.5 kB 13.6 MB/s eta 0:00:00
+#10 1.356 Downloading markupsafe-3.0.3-cp311-cp311-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (24 kB)
+#10 1.381 Installing collected packages: MarkupSafe, itsdangerous, click, blinker, Werkzeug, Jinja2, flask
+#10 1.561 Successfully installed Jinja2-3.1.6 MarkupSafe-3.0.3 Werkzeug-3.1.8 blinker-1.9.0 click-8.3.1 flask-3.0.3 itsdangerous-2.2.0
+#10 1.561 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv
+#10 1.645 
+#10 1.645 [notice] A new release of pip is available: 24.0 -> 26.0.1
+#10 1.645 [notice] To update, run: pip install --upgrade pip
+#10 DONE 1.7s
+
+#11 [6/6] COPY --chown=appuser:appgroup app.py .
+#11 DONE 0.0s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 0.4s done
+#12 exporting manifest sha256:fb27feadedb318f61d78e81b1d688425c20e2376d1d014581e80cb0f1954d876
+#12 exporting manifest sha256:fb27feadedb318f61d78e81b1d688425c20e2376d1d014581e80cb0f1954d876 done
+#12 exporting config sha256:650da084aa12f1fc0611ca73fffa24b607183fb4bba2e27240f25f94f5fa3d5a done
+#12 exporting attestation manifest sha256:d3d597f3db5df85f05a8eb1ad8167ea40b826b07a5b34e00699dbca88de9cd93 done
+#12 exporting manifest list sha256:6329329b8d05d300ed948c2985b49ad07509d8276021c3a968b1086715babd0d done
+#12 naming to docker.io/library/lab05-vuln:latest done
+#12 unpacking to docker.io/library/lab05-vuln:latest 0.1s done
+#12 DONE 0.5s

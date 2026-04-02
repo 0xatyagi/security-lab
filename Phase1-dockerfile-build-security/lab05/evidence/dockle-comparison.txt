@@ -1,0 +1,13 @@
+===== DOCKLE — VULNERABLE =====
+[31mFATAL[0m	- [36mDKL-DI-0005[0m: Clear apt-get caches
+[33mWARN[0m	- [36mDKL-DI-0006[0m: Avoid latest tag
+[35mINFO[0m	- [36mCIS-DI-0005[0m: Enable Content trust for Docker
+[35mINFO[0m	- [36mCIS-DI-0006[0m: Add HEALTHCHECK instruction to the container image
+[35mINFO[0m	- [36mCIS-DI-0008[0m: Confirm safety of setuid/setgid files
+
+===== DOCKLE — FIXED =====
+[31mFATAL[0m	- [36mDKL-DI-0005[0m: Clear apt-get caches
+[33mWARN[0m	- [36mDKL-DI-0006[0m: Avoid latest tag
+[35mINFO[0m	- [36mCIS-DI-0005[0m: Enable Content trust for Docker
+[35mINFO[0m	- [36mCIS-DI-0006[0m: Add HEALTHCHECK instruction to the container image
+[35mINFO[0m	- [36mCIS-DI-0008[0m: Confirm safety of setuid/setgid files

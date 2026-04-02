@@ -1,0 +1,19 @@
+===== TRIVY — unfixed CVEs ship without --ignore-unfixed =====
+Total: 8 (HIGH: 8)
+Total: 3 (HIGH: 3)
+Trivy exit code: 0
+
+===== TRIVY — gate fires on FIXABLE CVEs only =====
+Total: 3 (HIGH: 3)
+Trivy exit code with --ignore-unfixed: 0
+
+===== GRYPE — second scanner opinion =====
+liblzma5                 5.8.1-1                      (won't fix)                 deb     CVE-2026-34743       Unknown     N/A            N/A    
+libmount1                2.41-5                       (won't fix)                 deb     CVE-2026-3184        Unknown     N/A            N/A    
+libsmartcols1            2.41-5                       (won't fix)                 deb     CVE-2026-3184        Unknown     N/A            N/A    
+libuuid1                 2.41-5                       (won't fix)                 deb     CVE-2026-3184        Unknown     N/A            N/A    
+login                    1:4.16.0-2+really2.41-5      (won't fix)                 deb     CVE-2026-3184        Unknown     N/A            N/A    
+mount                    2.41-5                       (won't fix)                 deb     CVE-2026-3184        Unknown     N/A            N/A    
+util-linux               2.41-5                       (won't fix)                 deb     CVE-2026-3184        Unknown     N/A            N/A
+[0031] ERROR [31mdiscovered vulnerabilities at or above the severity threshold[0m
+Grype exit code: 0

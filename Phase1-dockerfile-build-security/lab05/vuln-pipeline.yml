@@ -1,0 +1,24 @@
+# vuln-pipeline.yml — NO scanning gate
+# This pipeline builds and pushes with zero security checks
+name: Vulnerable Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image
+        run: docker build -t myapp:${{ github.sha }} .
+
+      - name: Push to registry
+        run: docker push myapp:${{ github.sha }}
+      
+      # NO trivy scan
+      # NO grype scan  
+      # NO hadolint check
+      # Vulnerable images ship directly to production

@@ -1,0 +1,42 @@
+# fixed-pipeline.yml — with scanning gate
+name: Secure Pipeline
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-scan-push:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Build image (local only — do not push yet)
+        uses: docker/build-push-action@v6
+        with:
+          push: false
+          load: true
+          tags: myapp:${{ github.sha }}
+
+      - name: Scan with Trivy (HARD GATE)
+        uses: aquasecurity/trivy-action@master
+        with:
+          image-ref: myapp:${{ github.sha }}
+          exit-code: '1'
+          severity: 'CRITICAL,HIGH'
+          format: 'sarif'
+          output: 'trivy-results.sarif'
+
+      - name: Upload results to GitHub Security tab
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: trivy-results.sarif
+
+      - name: Push (only runs if scan passed)
+        uses: docker/build-push-action@v6
+        with:
+          push: true
+          tags: myapp:${{ github.sha }}
