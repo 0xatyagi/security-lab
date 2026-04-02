@@ -1,0 +1,8 @@
+===== HADOLINT — vuln.Dockerfile =====
+lab04/vuln.Dockerfile:7 DL3008 [1m[93mwarning[0m: Pin versions in apt get install. Instead of `apt-get install <package>` use `apt-get install <package>=<version>`
+lab04/vuln.Dockerfile:7 DL3015 [92minfo[0m: Avoid additional packages by specifying `--no-install-recommends`
+lab04/vuln.Dockerfile:17 DL3042 [1m[93mwarning[0m: Avoid use of cache directory with pip. Use `pip install --no-cache-dir <package>`
+
+===== HADOLINT — fixed.Dockerfile =====
+lab04/fixed.Dockerfile:6 DL3008 [1m[93mwarning[0m: Pin versions in apt get install. Instead of `apt-get install <package>` use `apt-get install <package>=<version>`
+lab04/fixed.Dockerfile:20 DL3008 [1m[93mwarning[0m: Pin versions in apt get install. Instead of `apt-get install <package>` use `apt-get install <package>=<version>`
