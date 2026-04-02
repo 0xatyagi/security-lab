@@ -1,0 +1,14 @@
+===== VULN IMAGE (python:3.11-slim) =====
+Total: 8 (HIGH: 8)
+Total: 3 (HIGH: 3)
+
+===== FIXED IMAGE (python:3.12-slim) =====
+Total: 8 (HIGH: 8)
+
+===== FIXED IMAGE — CVE detail =====
+│ libc-bin     │ CVE-2026-4046  │ HIGH     │ fix_deferred │ 2.41-12+deb13u2   │               │ glibc: glibc: Denial of Service via iconv() function with   │
+│ libncursesw6 │ CVE-2025-69720 │          │ affected     │ 6.5+20250216-2    │               │ ncurses: ncurses: Buffer overflow vulnerability may lead to │
+│ libsystemd0  │ CVE-2026-29111 │          │              │ 257.9-1~deb13u1   │               │ systemd: systemd: Arbitrary code execution or Denial of     │
+│ libtinfo6    │ CVE-2025-69720 │          │              │ 6.5+20250216-2    │               │ ncurses: ncurses: Buffer overflow vulnerability may lead to │
+│ libudev1     │ CVE-2026-29111 │          │              │ 257.9-1~deb13u1   │               │ systemd: systemd: Arbitrary code execution or Denial of     │
+│ ncurses-base │ CVE-2025-69720 │          │              │ 6.5+20250216-2    │               │ ncurses: ncurses: Buffer overflow vulnerability may lead to │
