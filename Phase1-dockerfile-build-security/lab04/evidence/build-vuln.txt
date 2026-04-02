@@ -1,0 +1,142 @@
+#0 building with "desktop-linux" instance using docker driver
+
+#1 [internal] load build definition from vuln.Dockerfile
+#1 transferring dockerfile: 488B done
+#1 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12
+#2 ...
+
+#3 [auth] library/python:pull token for registry-1.docker.io
+#3 DONE 0.0s
+
+#2 [internal] load metadata for docker.io/library/python:3.12
+#2 DONE 3.4s
+
+#4 [internal] load .dockerignore
+#4 transferring context: 2B done
+#4 DONE 0.0s
+
+#5 [internal] load build context
+#5 transferring context: 63B done
+#5 DONE 0.0s
+
+#6 [1/6] FROM docker.io/library/python:3.12@sha256:c4c9e439bf98d5c20453156194f937aefb4a633555d93a1960d612052c4b3436
+#6 resolve docker.io/library/python:3.12@sha256:c4c9e439bf98d5c20453156194f937aefb4a633555d93a1960d612052c4b3436 0.0s done
+#6 sha256:e3372b620f7b458b2f1c6b6b60f2a693d27ac09cf45e9c40e88d1b44c23dfc78 0B / 250B 0.2s
+#6 sha256:c64af1a2b19f4ad9ae7be8b9140f109ab92658f6edd0fe034ff0f53db7045ca1 0B / 6.19MB 0.2s
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 0B / 24.97MB 0.2s
+#6 sha256:e3372b620f7b458b2f1c6b6b60f2a693d27ac09cf45e9c40e88d1b44c23dfc78 250B / 250B 0.6s done
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 3.15MB / 24.97MB 1.2s
+#6 sha256:c64af1a2b19f4ad9ae7be8b9140f109ab92658f6edd0fe034ff0f53db7045ca1 2.10MB / 6.19MB 1.4s
+#6 sha256:c64af1a2b19f4ad9ae7be8b9140f109ab92658f6edd0fe034ff0f53db7045ca1 4.19MB / 6.19MB 1.7s
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 5.24MB / 24.97MB 1.7s
+#6 sha256:c64af1a2b19f4ad9ae7be8b9140f109ab92658f6edd0fe034ff0f53db7045ca1 6.19MB / 6.19MB 1.9s done
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 7.34MB / 24.97MB 2.0s
+#6 extracting sha256:c64af1a2b19f4ad9ae7be8b9140f109ab92658f6edd0fe034ff0f53db7045ca1 0.1s done
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 9.44MB / 24.97MB 2.1s
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 11.53MB / 24.97MB 2.3s
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 13.63MB / 24.97MB 2.4s
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 15.73MB / 24.97MB 2.6s
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 17.83MB / 24.97MB 2.7s
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 19.92MB / 24.97MB 2.9s
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 23.07MB / 24.97MB 3.2s
+#6 sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 24.97MB / 24.97MB 3.2s done
+#6 extracting sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242
+#6 extracting sha256:0b60dc318adbfba7ec4becf8a1a778a3fac86a8b56c24e4795b26facf88b0242 0.3s done
+#6 DONE 3.5s
+
+#6 [1/6] FROM docker.io/library/python:3.12@sha256:c4c9e439bf98d5c20453156194f937aefb4a633555d93a1960d612052c4b3436
+#6 extracting sha256:e3372b620f7b458b2f1c6b6b60f2a693d27ac09cf45e9c40e88d1b44c23dfc78 done
+#6 DONE 3.5s
+
+#7 [2/6] WORKDIR /app
+#7 DONE 0.1s
+
+#8 [3/6] RUN apt-get update && apt-get install -y     build-essential     libpq-dev     gcc     make     curl     wget     && rm -rf /var/lib/apt/lists/*
+#8 0.814 Hit:1 http://deb.debian.org/debian trixie InRelease
+#8 0.967 Get:2 http://deb.debian.org/debian trixie-updates InRelease [47.3 kB]
+#8 0.975 Get:3 http://deb.debian.org/debian-security trixie-security InRelease [43.4 kB]
+#8 0.987 Get:4 http://deb.debian.org/debian trixie/main arm64 Packages [9607 kB]
+#8 1.652 Get:5 http://deb.debian.org/debian trixie-updates/main arm64 Packages [5404 B]
+#8 1.659 Get:6 http://deb.debian.org/debian-security trixie-security/main arm64 Packages [119 kB]
+#8 2.246 Fetched 9822 kB in 2s (4724 kB/s)
+#8 2.246 Reading package lists...
+#8 2.526 Reading package lists...
+#8 2.798 Building dependency tree...
+#8 2.872 Reading state information...
+#8 2.975 libpq-dev is already the newest version (17.9-0+deb13u1).
+#8 2.975 gcc is already the newest version (4:14.2.0-1).
+#8 2.975 make is already the newest version (4.4.1-2).
+#8 2.975 curl is already the newest version (8.14.1-2+deb13u2).
+#8 2.975 wget is already the newest version (1.25.0-2).
+#8 2.975 The following NEW packages will be installed:
+#8 2.976   build-essential
+#8 3.007 0 upgraded, 1 newly installed, 0 to remove and 17 not upgraded.
+#8 3.007 Need to get 4624 B of archives.
+#8 3.007 After this operation, 17.4 kB of additional disk space will be used.
+#8 3.007 Get:1 http://deb.debian.org/debian trixie/main arm64 build-essential arm64 12.12 [4624 B]
+#8 3.111 debconf: unable to initialize frontend: Dialog
+#8 3.111 debconf: (TERM is not set, so the dialog frontend is not usable.)
+#8 3.111 debconf: falling back to frontend: Readline
+#8 3.114 debconf: unable to initialize frontend: Readline
+#8 3.114 debconf: (This frontend requires a controlling tty.)
+#8 3.114 debconf: falling back to frontend: Teletype
+#8 3.116 debconf: unable to initialize frontend: Teletype
+#8 3.116 debconf: (This frontend requires a controlling tty.)
+#8 3.116 debconf: falling back to frontend: Noninteractive
+#8 3.432 Fetched 4624 B in 0s (171 kB/s)
+#8 3.444 Selecting previously unselected package build-essential.
+#8 3.444 (Reading database ... (Reading database ... 5%(Reading database ... 10%(Reading database ... 15%(Reading database ... 20%(Reading database ... 25%(Reading database ... 30%(Reading database ... 35%(Reading database ... 40%(Reading database ... 45%(Reading database ... 50%(Reading database ... 55%(Reading database ... 60%(Reading database ... 65%(Reading database ... 70%(Reading database ... 75%(Reading database ... 80%(Reading database ... 85%(Reading database ... 90%(Reading database ... 95%(Reading database ... 100%(Reading database ... 26854 files and directories currently installed.)
+#8 3.484 Preparing to unpack .../build-essential_12.12_arm64.deb ...
+#8 3.485 Unpacking build-essential (12.12) ...
+#8 3.500 Setting up build-essential (12.12) ...
+#8 DONE 3.5s
+
+#9 [4/6] COPY requirements.txt .
+#9 DONE 0.0s
+
+#10 [5/6] RUN pip install -r requirements.txt
+#10 0.818 Collecting flask==3.0.3 (from -r requirements.txt (line 1))
+#10 0.883   Downloading flask-3.0.3-py3-none-any.whl.metadata (3.2 kB)
+#10 0.910 Collecting Werkzeug>=3.0.0 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 0.919   Downloading werkzeug-3.1.7-py3-none-any.whl.metadata (4.0 kB)
+#10 0.934 Collecting Jinja2>=3.1.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 0.945   Downloading jinja2-3.1.6-py3-none-any.whl.metadata (2.9 kB)
+#10 0.960 Collecting itsdangerous>=2.1.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 0.967   Downloading itsdangerous-2.2.0-py3-none-any.whl.metadata (1.9 kB)
+#10 0.986 Collecting click>=8.1.3 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 0.996   Downloading click-8.3.1-py3-none-any.whl.metadata (2.6 kB)
+#10 1.009 Collecting blinker>=1.6.2 (from flask==3.0.3->-r requirements.txt (line 1))
+#10 1.017   Downloading blinker-1.9.0-py3-none-any.whl.metadata (1.6 kB)
+#10 1.063 Collecting MarkupSafe>=2.0 (from Jinja2>=3.1.2->flask==3.0.3->-r requirements.txt (line 1))
+#10 1.070   Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl.metadata (2.7 kB)
+#10 1.083 Downloading flask-3.0.3-py3-none-any.whl (101 kB)
+#10 1.120 Downloading blinker-1.9.0-py3-none-any.whl (8.5 kB)
+#10 1.132 Downloading click-8.3.1-py3-none-any.whl (108 kB)
+#10 1.146 Downloading itsdangerous-2.2.0-py3-none-any.whl (16 kB)
+#10 1.160 Downloading jinja2-3.1.6-py3-none-any.whl (134 kB)
+#10 1.173 Downloading werkzeug-3.1.7-py3-none-any.whl (226 kB)
+#10 1.194 Downloading markupsafe-3.0.3-cp312-cp312-manylinux2014_aarch64.manylinux_2_17_aarch64.manylinux_2_28_aarch64.whl (24 kB)
+#10 1.207 Installing collected packages: MarkupSafe, itsdangerous, click, blinker, Werkzeug, Jinja2, flask
+#10 1.383 Successfully installed Jinja2-3.1.6 MarkupSafe-3.0.3 Werkzeug-3.1.7 blinker-1.9.0 click-8.3.1 flask-3.0.3 itsdangerous-2.2.0
+#10 1.384 WARNING: Running pip as the 'root' user can result in broken permissions and conflicting behaviour with the system package manager, possibly rendering your system unusable. It is recommended to use a virtual environment instead: https://pip.pypa.io/warnings/venv. Use the --root-user-action option if you know what you are doing and want to suppress this warning.
+#10 1.442 
+#10 1.442 [notice] A new release of pip is available: 25.0.1 -> 26.0.1
+#10 1.442 [notice] To update, run: pip install --upgrade pip
+#10 DONE 1.5s
+
+#11 [6/6] COPY app.py .
+#11 DONE 0.0s
+
+#12 exporting to image
+#12 exporting layers
+#12 exporting layers 0.3s done
+#12 exporting manifest sha256:b30e65a92147be34097211e30d5c99f0f5665f0cbb7a7d46448a0b0d7fcd378f
+#12 exporting manifest sha256:b30e65a92147be34097211e30d5c99f0f5665f0cbb7a7d46448a0b0d7fcd378f done
+#12 exporting config sha256:717d2ecfcff4bbe8788f1f83dc14a0fa7378d667744a9490ac278b91e6ab6ab4 done
+#12 exporting attestation manifest sha256:3a3387fd2eda6af1e16a11eb47d11d2091ad43b46a4674965911eaf8b3fbc00a done
+#12 exporting manifest list sha256:acb826e2e82305a27507d3a2ab8a3f192670525f024d1200d618ca1e4b1234d7 done
+#12 naming to docker.io/library/lab04-vuln:latest done
+#12 unpacking to docker.io/library/lab04-vuln:latest 0.1s done
+#12 DONE 0.4s
