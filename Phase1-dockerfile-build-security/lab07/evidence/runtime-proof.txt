@@ -1,0 +1,10 @@
+===== RUNTIME PROOF — vulnerable (no health status) =====
+d9b945fc083102fc4b8a048186e14cc06083d48abb5c970640ceeabd0edc51c6
+Status: Up 3 seconds
+Health: null
+
+===== RUNTIME PROOF — fixed (health status visible) =====
+f925f90e2bf1293186988ade76d71c340147c137689d3d371c2b7d013815450b
+Waiting 45 seconds...
+Status: Up 45 seconds (healthy)
+Health status: healthy

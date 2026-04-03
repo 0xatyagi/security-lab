@@ -1,0 +1,26 @@
+===== HADOLINT — vuln (DL3020 expected) =====
+lab08/vuln.Dockerfile:11 DL3020 [1m[91merror[0m: Use COPY instead of ADD for files and folders
+lab08/vuln.Dockerfile:12 DL3020 [1m[91merror[0m: Use COPY instead of ADD for files and folders
+
+===== HADOLINT — fixed (clean) =====
+
+===== DOCKLE — vuln =====
+[31mFATAL[0m	- [36mCIS-DI-0009[0m: Use COPY instead of ADD in Dockerfile
+[31mFATAL[0m	- [36mDKL-DI-0005[0m: Clear apt-get caches
+[33mWARN[0m	- [36mDKL-DI-0006[0m: Avoid latest tag
+[35mINFO[0m	- [36mCIS-DI-0005[0m: Enable Content trust for Docker
+[35mINFO[0m	- [36mCIS-DI-0006[0m: Add HEALTHCHECK instruction to the container image
+[35mINFO[0m	- [36mCIS-DI-0008[0m: Confirm safety of setuid/setgid files
+
+===== DOCKLE — fixed =====
+[31mFATAL[0m	- [36mDKL-DI-0005[0m: Clear apt-get caches
+[33mWARN[0m	- [36mDKL-DI-0006[0m: Avoid latest tag
+[35mINFO[0m	- [36mCIS-DI-0005[0m: Enable Content trust for Docker
+[35mINFO[0m	- [36mCIS-DI-0006[0m: Add HEALTHCHECK instruction to the container image
+[35mINFO[0m	- [36mCIS-DI-0008[0m: Confirm safety of setuid/setgid files
+
+===== AUTO-EXTRACTION RISK DEMO =====
+Creating test archive...
+ADD auto-extracts this — COPY would not:
+ADD test-archive.tar.gz /app/ → expands to /app/lab08test/testfile.txt
+COPY test-archive.tar.gz /app/ → keeps it as /app/test-archive.tar.gz
