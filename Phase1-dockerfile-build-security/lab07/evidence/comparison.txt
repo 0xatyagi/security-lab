@@ -1,0 +1,23 @@
+===== HADOLINT — vuln =====
+
+===== HADOLINT — fixed =====
+lab07/fixed.Dockerfile:6 DL3008 [1m[93mwarning[0m: Pin versions in apt get install. Instead of `apt-get install <package>` use `apt-get install <package>=<version>`
+
+===== DOCKLE — vuln (CIS-DI-0006 expected) =====
+[31mFATAL[0m	- [36mDKL-DI-0005[0m: Clear apt-get caches
+[33mWARN[0m	- [36mDKL-DI-0006[0m: Avoid latest tag
+[35mINFO[0m	- [36mCIS-DI-0005[0m: Enable Content trust for Docker
+[35mINFO[0m	- [36mCIS-DI-0006[0m: Add HEALTHCHECK instruction to the container image
+[35mINFO[0m	- [36mCIS-DI-0008[0m: Confirm safety of setuid/setgid files
+
+===== DOCKLE — fixed (CIS-DI-0006 gone) =====
+[31mFATAL[0m	- [36mDKL-DI-0005[0m: Clear apt-get caches
+[33mWARN[0m	- [36mDKL-DI-0006[0m: Avoid latest tag
+[35mINFO[0m	- [36mCIS-DI-0005[0m: Enable Content trust for Docker
+[35mINFO[0m	- [36mCIS-DI-0008[0m: Confirm safety of setuid/setgid files
+
+===== DOCKER INSPECT — vuln health config =====
+Healthcheck: null
+
+===== DOCKER INSPECT — fixed health config =====
+Healthcheck: {"Test":["CMD-SHELL","curl -f http://localhost:8080/health || exit 1"],"Interval":30000000000,"Timeout":5000000000,"StartPeriod":10000000000,"Retries":3}

@@ -1,0 +1,23 @@
+===== DOCKER INSPECT — vuln exposed ports =====
+{"3000/tcp":{}
+"8443/tcp":{}
+"9090/tcp":{}
+"9229/tcp":{}}
+
+===== DOCKER INSPECT — fixed exposed ports =====
+{"3000/tcp":{}}
+
+===== RUNTIME — vulnerable with -P flag (publishes ALL ports) =====
+95485ddf15fab4b230b5e9b61a748909457130d4426fd085e2b3aae84239528c
+3000/tcp -> 0.0.0.0:55000
+8443/tcp -> 0.0.0.0:55001
+9090/tcp -> 0.0.0.0:55002
+9229/tcp -> 0.0.0.0:55003
+
+===== RISK: debug port 9229 is now publicly bound =====
+9229/tcp -> 0.0.0.0:55003
+
+===== RUNTIME — fixed with explicit port only =====
+021d1407fca51a8ef12790aabfb508a9c4259a5dde2670fb5159a4aa80d8f9ad
+3000/tcp -> 0.0.0.0:3000
+3000/tcp -> [::]:3000
