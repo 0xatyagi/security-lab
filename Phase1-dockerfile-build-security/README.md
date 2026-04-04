@@ -1,307 +1,106 @@
-# Lab 03 — Secrets Baked into Image Layers
+# Container Image Security — Hands-On Learning
 
-| Field | Value |
-|-------|-------|
-| **Risk Rating** | 🔴 Critical |
-| **CIS Docker Benchmark** | 4.10 — Ensure secrets are not stored in Dockerfiles |
-| **MITRE ATT&CK** | T1552.001 — Unsecured Credentials: Credentials in Files |
-| **Tools Used** | `docker history`, `docker inspect`, `dockle`, `trufflehog` |
-| **trufflehog version** | 3.94.1 |
-| **Lab Completed** | March 2026 |
+A collection of hands-on container security labs I built while enhancing devsecops skills and deepening my knowledge of container security. Each lab has a vulnerable image, a working exploit, detection output from real tools, and a fixed version.
+
+All commands were run on macOS with Docker Desktop. Evidence files in each lab folder contain real terminal output — not fabricated.
 
 ---
 
-## What Is This?
+## What's in Here
 
-Every instruction in a Dockerfile creates a **layer**. Layers are immutable and additive. If you `COPY .env` into layer 5, then `RUN rm .env` in layer 6, **the `.env` file still exists in layer 5**. Anyone who pulls the image can extract every layer and read those secrets.
+| Phase | Topic | Labs |
+|-------|-------|------|
+| Phase 1 | Dockerfile and Build Security | Labs 01–09 |
+| Phase 2 | Image Trust and Supply Chain | Labs 10–18 |
+| Phase 3 | Image Hardening and Analysis | Labs 19–27 |
+| Phase 4 | Admission Control and Pipelines | Labs 28–35 |
 
-Secrets leak through two independent paths in this lab:
-
-1. **`ARG` / `ENV` values** — visible in plain text via `docker history --no-trunc` and `docker inspect`, permanently baked into image metadata
-2. **Copied secret files** — even after `RUN rm -f .env`, the layer containing the file is permanently part of the image manifest
-
-`docker history --no-trunc` reveals `ARG` and `ENV` values in plain text. `trufflehog` scans image layers automatically for credential patterns. **If you push a secret into a layer, assume it is public.**
-
----
-
-## Root Cause
-
-Misunderstanding Docker's layer model. Each `RUN`, `COPY`, and `ADD` instruction creates a new filesystem layer. Deleting a file in a subsequent layer only adds a whiteout marker — the original file remains in the earlier layer and is fully readable.
-
-Contributing factors:
-- Developers treat Dockerfiles like shell scripts — copy, use, delete
-- `ARG` and `ENV` values are recorded in image metadata
-- No `.dockerignore` file, so `COPY .` grabs everything including `.env`
-- Misconception that `RUN rm` removes secrets from the image
+Phase 1 is complete. Phases 2–4 in progress.
 
 ---
 
-## Vulnerable Dockerfile
+## Phase 1 Findings — Dockerfile and Build Security
 
-```dockerfile
-# vuln.Dockerfile — secrets baked into image layers
-FROM python:3.12-slim
+### Lab 01 — Running as Root (High)
 
-WORKDIR /app
+No `USER` directive means the container process runs as UID 0. Proved this by reading `/etc/shadow`, attempting package installs, and overwriting the application binary — all from inside the container. Fix: create a dedicated non-root user with explicit UID/GID and switch to it before `CMD`.
 
-# BAD: Secret passed as build argument — visible in docker history
-ARG DB_PASSWORD
-ENV DATABASE_URL=postgres://admin:${DB_PASSWORD}@db.prod.internal:5432/app
+### Lab 02 — Unpinned Base Image Tag (Medium)
 
-# BAD: Copying .env file into the image
-COPY .env ./
+`FROM python:latest` resolves to a different digest every time the upstream maintainer pushes. Used `crane digest` to capture the current digest, showed 196 HIGH CVEs inherited silently. Switching to `python:3.12-slim` dropped that to 6. For full reproducibility: pin to digest with `@sha256:...` and automate updates with Renovate.
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY app.py .
+### Lab 03 — Secrets Baked into Layers (Critical)
 
-# "Cleanup" — this does NOT remove secrets from earlier layers
-RUN rm -f .env
+Passed a database password via `ARG` and copied a `.env` file, then ran `RUN rm -f .env` thinking it was cleaned up. `docker history --no-trunc` showed the full credential. `trufflehog` found the same credential in two independent locations: the file layer and the build history metadata. The `rm` does nothing — layers are append-only. Fix: BuildKit `--mount=type=secret` and a `.dockerignore`.
 
-EXPOSE 8080
-CMD ["python", "app.py"]
-```
+### Lab 04 — Bloated Image (Medium)
 
----
+`FROM python:3.12` with build dependencies left in the final image: 1.63GB, 473 packages, 205 HIGH CVEs, and six post-exploitation tools (curl, wget, gcc, make, bash, apt-get) all pre-installed. Multi-stage build brought this to 215MB, 102 packages, 8 CVEs, zero attack tools.
 
-## Detection — Vulnerable Image
+### Lab 05 — No Vulnerability Scanning in Pipeline (High)
 
-### hadolint — SILENT (tool gap documented)
+The Dockerfile looked clean — hadolint and dockle found nothing critical. But the image carried 11 CVEs that shipped silently because the pipeline had no scan gate. Added `trivy image --exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL` between build and push. Key nuance: `--ignore-unfixed` is required, otherwise trivy returns exit code 0 on CVEs with no fix available and the gate never fires.
 
-```
-(no output)
-```
+### Lab 06 — Build Cache Leaking Credentials (High)
 
-hadolint 2.14.0 has no rules for detecting secrets passed via `ARG` or `ENV`. Secret detection requires post-build tools. However, Docker's BuildKit does warn at build time:
+Passed a private registry token via `ARG` and `ENV` in a multi-stage build. BuildKit caught it with `SecretsUsedInArgOrEnv` warnings on both lines — but still built the image. Modern BuildKit no longer stores ARG values in `docker history` (improvement from older versions), but the token still appears in CI build logs and cache export metadata. Fix: `--mount=type=secret`.
 
-```
-SecretsUsedInArgOrEnv: Do not use ARG or ENV instructions for sensitive data (ARG "DB_PASSWORD")
-```
+### Lab 07 — Missing HEALTHCHECK (Medium)
 
-BuildKit warns but does **not** block the build by default.
+Without a `HEALTHCHECK`, Docker has no application-level awareness. A hung or crashing process still shows as "Up". Proved this with `docker inspect` returning `null` for health state. Added a `curl -f http://localhost:8080/health` check with appropriate interval and retries. After the start period, `docker ps` showed `Up 45 seconds (healthy)`.
 
-### dockle — catches credential in environment variables
+### Lab 08 — ADD Instead of COPY (Medium)
 
-```
-FATAL   - CIS-DI-0010: Do not store credential in environment variables/files
-        * Suspicious ENV key found : DB_PASSWORD on ARG DB_PASSWORD=*******
-        * Suspicious ENV key found : DB_PASSWORD on RUN |1 DB_PASSWORD=******* /bin/sh -c pip install...
-        * Suspicious ENV key found : DB_PASSWORD on RUN |1 DB_PASSWORD=******* /bin/sh -c rm -f .env
-FATAL   - DKL-DI-0005: Clear apt-get caches
-WARN    - CIS-DI-0001: Create a user for the container
-WARN    - DKL-DI-0006: Avoid latest tag
-```
+`ADD` auto-extracts archives and fetches remote URLs with no checksum verification. Both are unintended behaviours for standard file copying. hadolint raised `DL3020` as an **error** (not a warning) on every `ADD` line. dockle raised `CIS-DI-0009` as FATAL. Fix: replace with `COPY`. For remote files: `curl` with `sha256sum -c` verification.
 
-`CIS-DI-0010` is a FATAL finding — credentials detected in environment variables. Note that dockle redacts the value with `*******` in its output, but the actual secret is readable via `docker history --no-trunc`.
+### Lab 09 — Unnecessary Port Exposure (Medium)
+
+Dockerfile exposed four ports: 3000 (app), 9229 (Node.js debugger), 9090 (metrics), 8443 (admin). Running with `docker run -P` published all four to `0.0.0.0` on random high ports. Port 9229 (the Node.js inspector) allows arbitrary JavaScript execution via WebSocket — full RCE from a "development" port that nobody removed. Fix: expose only the production port. Never use `-P` in production.
 
 ---
 
-## Exploitation — Three Independent Attack Paths
+## Tools Used
 
-### Path 1 — docker history reveals ARG and ENV values in plain text
+**hadolint** — Dockerfile linter. Runs on the file itself before any image is built. Catches syntax issues, unpinned tags (DL3007), ADD vs COPY (DL3020 as error), missing `--no-install-recommends`, unpinned apt versions. Fast enough to run as a pre-commit hook.
 
-```
-ARG DB_PASSWORD=s3cr3t@P@ssw0rd
-ENV DATABASE_URL=postgres://admin:s3cr3t@P@ssw0rd@db.prod.internal:5432/app
-```
+**dockle** — CIS Docker Benchmark checker. Runs against the built image. Checks runtime configuration: whether the container runs as non-root (CIS-DI-0001), whether HEALTHCHECK exists (CIS-DI-0006), credential detection in ENV (CIS-DI-0010), ADD vs COPY (CIS-DI-0009). Different from hadolint — it operates on the image, not the Dockerfile.
 
-Anyone who pulls the image and runs `docker history --no-trunc` gets the full database password. No special tools required.
+**trivy** — Primary vulnerability scanner. Scans OS packages and application dependencies in the built image. Also does Dockerfile misconfiguration scanning via `trivy config`. Used as the CI hard gate with `--exit-code 1 --ignore-unfixed --severity HIGH,CRITICAL`.
 
-### Path 2 — Prove rm -f does NOT protect the secret
+**grype** — Second vulnerability scanner for cross-validation. Uses a different database from trivy. Found CVEs that trivy classified differently in Lab 05. Running both takes 60 seconds and improves coverage.
 
-```
-===== PROVE .env SURVIVES rm -f (run container and check) =====
-FILE NOT IN RUNNING CONTAINER (deleted by rm)
+**trufflehog** — Secret scanner. Scans every layer of an image for credential patterns. In Lab 03 it found the same credential in two places: the file layer and the build history metadata. Requires saving the image as a tar first for local images (`docker save`).
 
-===== BUT SECRET IS IN LAYER HISTORY (rm did not protect it) =====
-<missing>   COPY .env ./ # buildkit   12.3kB
+**crane** — OCI registry tool. Used to get the current digest of a tag (`crane digest python:3.12-slim`) for pinning, inspect manifests without pulling, and compare image sizes.
 
-===== AND SECRET IS IN ENV METADATA =====
-DATABASE_URL=postgres://admin:s3cr3t@P@ssw0rd@db.prod.internal:5432/app
-```
-
-The `rm -f .env` succeeded in the running container — the file is gone from the container's view. But the layer containing it (`12.3kB`) is permanently baked into the image manifest. And independently, the `ENV DATABASE_URL` is readable via `docker inspect` regardless.
-
-### Path 3 — trufflehog automated secret scanning
-
-```
-Found unverified result
-Detector Type: Postgres
-Raw result: postgres://admin:s3cretP@ssw0rd@db.prod.internal:5432
-File: /app/.env
-Layer: sha256:fa73ee1a594cd2afbd03bbeda29bd03d2d9f4b45431d48b33c5e175e5cc35f01
-
-Found unverified result
-Detector Type: Postgres
-Raw result: postgres://admin:s3cr3t@P@ssw0rd@db.prod.internal:5432
-File: image-metadata:history:12:created-by
-```
-
-Trufflehog found the same credential in **two independent locations**:
-- `/app/.env` — the file layer (supposedly deleted by `rm -f`)
-- `image-metadata:history:12` — the build history metadata from the `ARG`/`ENV` instructions
+**dive** — Interactive layer explorer. Shows what each layer adds, modifies, or removes. Useful for spotting wasted space, misplaced files, and secrets that survived a `RUN rm`.
 
 ---
 
-## Fixed Dockerfile
+## Gaps Found in the Tools
 
-```dockerfile
-# fixed.Dockerfile — no secrets in layers
-FROM python:3.12-slim
+These came up during the labs. Knowing what a tool misses is as useful as knowing what it catches.
 
-WORKDIR /app
+**hadolint is silent when USER is absent** — `DL3002` fires when `USER root` is explicitly written. When there is no `USER` directive at all, hadolint says nothing. It cannot infer that the absence means root. Pair with dockle `CIS-DI-0001` which catches this on the built image.
 
-RUN groupadd --gid 1001 appgroup && \
-    useradd --uid 1001 \
-            --gid appgroup \
-            --shell /bin/false \
-            --no-create-home \
-            appuser
+**hadolint has no secret detection** — ARG or ENV with a credential value passes hadolint without any warning. It checks syntax, not values. Use trufflehog and dockle `CIS-DI-0010` for this.
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-COPY --chown=appuser:appgroup app.py .
+**trivy --exit-code 1 does not block on unfixable CVEs** — If all HIGH CVEs have status `fix_deferred`, trivy returns exit code 0 even with `--exit-code 1`. Add `--ignore-unfixed` to focus the gate on CVEs that actually have patches available. Without this, the pipeline gate never fires on some images.
 
-USER appuser
-EXPOSE 8080
-CMD ["python", "app.py"]
-```
+**grype --fail-on changed in v0.110.0** — grype logs `ERROR discovered vulnerabilities at or above the severity threshold` but returns exit code 0. The flag behaviour changed between versions. Check release notes for your specific version.
 
-Runtime secrets are injected via environment variables at container start — never baked into the image:
+**trufflehog cannot scan local images directly (v3.94.x)** — `trufflehog docker --image myimage:latest` tries to pull from Docker Hub. Save the image first: `docker save myimage:latest -o /tmp/img.tar`, then `trufflehog docker --image=file:///tmp/img.tar`.
 
-```bash
-docker run -e DATABASE_URL=postgres://admin:password@db:5432/app lab03-fixed:latest
-```
-
-### Critical: always add .dockerignore
-
-```
-# .dockerignore
-.env
-*.env
-*.pem
-*.key
-id_rsa
-id_ed25519
-.git
-__pycache__
-```
-
-The `.dockerignore` prevents `COPY .` from grabbing secret files in the first place.
-
-### For build-time secrets — use BuildKit secret mounts
-
-```dockerfile
-# Secret is mounted as tmpfs — never written to any layer
-RUN --mount=type=secret,id=db_config \
-    cat /run/secrets/db_config > /app/config.json
-```
-
-```bash
-DOCKER_BUILDKIT=1 docker build \
-  --secret id=db_config,src=./db_config.env \
-  -t myapp:latest .
-```
-
-BuildKit mounts secrets as in-memory tmpfs that exists only during the `RUN` instruction — never written to any layer.
+**dockle DKL-DI-0005 fires on base image layers** — The apt cache warning appears for layers inherited from the base image that are outside our control. It shows up on both vulnerable and fixed images. Treat as noise for `python:3.x-slim` base images unless it is from your own `RUN apt-get install` layer.
 
 ---
 
-## Detection — Fixed Image
+## Environment
 
-### dockle
-
-```
-FATAL   - DKL-DI-0005: Clear apt-get caches
-WARN    - DKL-DI-0006: Avoid latest tag
-INFO    - CIS-DI-0005: Enable Content trust for Docker
-INFO    - CIS-DI-0006: Add HEALTHCHECK instruction to the container image
-INFO    - CIS-DI-0008: Confirm safety of setuid/setgid files
-```
-
-**`CIS-DI-0010` is completely gone** — the critical secret finding is resolved.
-
-### docker history — no application secrets
-
-Only Python base image environment variables remain (`PYTHON_VERSION`, `GPG_KEY`, `LANG`, `PATH`). No `DB_PASSWORD`, no `DATABASE_URL`.
-
-### docker inspect — no application secrets in env
-
-```
-PATH=/usr/local/bin:/usr/local/sbin:...
-LANG=C.UTF-8
-GPG_KEY=7169605F62C751356D054A26A821E680E5FA6305
-PYTHON_VERSION=3.12.13
-PYTHON_SHA256=c08bc65a81971c1dd5783182826503369466c7e67374d1646519adf05207b684
-```
-
-No application credentials anywhere in the metadata.
-
-### trufflehog — 0 application secrets, 3 base image false positives
-
-```
-Found unverified result
-Detector Type: URI
-Raw result: http://username:password@host.com:80
-File: /usr/local/lib/python3.12/site-packages/pip/_vendor/urllib3/util/url.py
-
-Found unverified result
-Detector Type: Box
-Raw result: 4f8872954327c3e11544372df11503c0
-File: /var/lib/dpkg/info/libc6:arm64.md5sums
-```
-
-All 3 remaining findings are base image false positives:
-- `http://username:password@host.com:80` — a placeholder URL in pip's urllib3 source code, not a real credential
-- `4f8872954327c3e11544372df11503c0` — an MD5 checksum in libc6 package metadata, not a secret
-
-Our `DATABASE_URL` and `DB_PASSWORD` are completely absent from the fixed image.
-
----
-
-## Before / After Comparison
-
-| Check | Vulnerable | Fixed |
-|-------|-----------|-------|
-| `docker history` DB_PASSWORD | ✅ Visible in plain text | ❌ Not present |
-| `docker history` DATABASE_URL | ✅ Visible in plain text | ❌ Not present |
-| `docker inspect` env secrets | ✅ Full connection string | ❌ Not present |
-| `.env` layer in image | ✅ 12.3kB layer exists | ❌ Not present |
-| `rm -f .env` protects secret | ❌ No — layer persists | N/A |
-| trufflehog Postgres findings | ✅ 2 real findings | ❌ 0 real findings |
-| trufflehog remaining | — | 3 base image false positives |
-| `CIS-DI-0010` dockle | 🔴 FATAL | ✅ Resolved |
-| `CIS-DI-0001` dockle | ⚠️ WARN | ✅ Resolved |
-
----
-
-## Interview Corner
-
-**Q: Why doesn't `RUN rm -f .env` protect the secret?**
-Docker layers are content-addressable and append-only. `RUN rm .env` creates a new layer with a whiteout marker — it hides the file from the running container's filesystem view, but the original layer containing `.env` is still part of the image manifest. Anyone who runs `docker save` and extracts the layer tar gets the file. The layer model is additive; deletion only hides, never destroys.
-
-**Q: What's the difference between `ARG` and `ENV` for secrets — which is safer?**
-Neither is safe. `ENV` values persist in the image metadata and are visible to running containers via environment variables and `docker inspect`. `ARG` values are build-time only and don't appear as runtime environment variables — but they are still permanently recorded in `docker history --no-trunc` as the build command that used them. Both are readable by anyone with access to the image. The only safe pattern is BuildKit `--mount=type=secret`.
-
-**Q: How does BuildKit `--mount=type=secret` work differently?**
-BuildKit mounts secrets as `tmpfs` — an in-memory filesystem that exists only during that specific `RUN` instruction's execution. The secret is never written to the overlay filesystem and never becomes part of any layer. `docker history` shows only the `RUN` command text, not the secret value. After the `RUN` completes, the tmpfs is unmounted and the secret is gone from the build environment entirely.
-
-**Q: trufflehog found 3 results on the fixed image — is it still vulnerable?**
-No. All 3 are base image false positives: a placeholder URL (`http://username:password@host.com:80`) in pip's urllib3 source code, and an MD5 checksum in libc6 package metadata. Neither is a real credential. This is an important real-world skill — distinguishing true positives from false positives in automated scan output. The key question is: does the raw result look like a real credential for a real system? A placeholder URL in a library's test code is not.
-
-**Q: A developer says "we delete the secret in a later RUN step — it's fine." How do you respond?**
-Run `docker history --no-trunc <image> | grep -i password` and show them the credential in plain text. Then run `trufflehog docker` and show them the finding with the specific layer hash. The misconception is treating Dockerfiles like shell scripts where `rm` destroys data. In Docker, layers are permanent records — deletion is a new record that says "hide this," not "destroy this." The proof takes 30 seconds to produce.
-
----
-
-## Cleanup
-
-```bash
-docker rmi lab03-vuln:latest lab03-fixed:latest
-rm -f /tmp/lab03-vuln.tar /tmp/lab03-fixed.tar
-rm -rf /tmp/lab03-extract
-```
-
----
-
-[← Lab 02](../lab02/lab02-latest-untagged-images.md) | [Lab 04 →](../lab04/lab04-bloated-images.md)
+- macOS, Docker Desktop
+- hadolint 2.14.0
+- dockle (latest)
+- trivy (latest)
+- grype 0.110.0
+- trufflehog 3.94.x
+- crane 0.21.3
