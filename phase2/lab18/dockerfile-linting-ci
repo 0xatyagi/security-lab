@@ -1,0 +1,187 @@
+# Lab 18 — No Dockerfile Linting in CI
+
+| Field | Value |
+|-------|-------|
+| **Risk Rating** | 🟡 Medium |
+| **MITRE ATT&CK** | T1610 — Deploy Container |
+| **CIS Benchmark** | CIS Docker 4.1 — Create a User for the Container |
+| **Tools Used** | `hadolint` |
+| **Lab Type** | Hands-on |
+| **Lab Completed** | April 2026 |
+
+---
+
+## What Is This?
+
+Without a linting step in the Jenkins pipeline, every Dockerfile anti-pattern from Phase 1 ships silently. Missing USER directives, ADD instead of COPY, unpinned base images, missing `--no-cache-dir` — none of these produce build errors. They just produce vulnerable images.
+
+hadolint in Jenkins catches these at the earliest possible point — before the image is built, before it reaches ECR, before it runs in ECS. 30 seconds of CI time prevents the entire Phase 1 vulnerability class from reaching production.
+
+---
+
+## Hands-On Evidence
+
+### Vulnerable Dockerfile — hadolint fires
+
+```
+/tmp/vuln-test.Dockerfile:1 DL3007 warning: Using latest is prone to errors if
+the image will ever update. Pin the version explicitly to a release tag
+
+/tmp/vuln-test.Dockerfile:3 DL3020 error: Use COPY instead of ADD for files and folders
+
+/tmp/vuln-test.Dockerfile:4 DL3042 warning: Avoid use of cache directory with pip.
+Use `pip install --no-cache-dir <package>`
+
+/tmp/vuln-test.Dockerfile:5 DL3020 error: Use COPY instead of ADD for files and folders
+
+Exit code: 1
+```
+
+### Fixed Dockerfile — clean
+
+```
+Exit code: 0
+(no output — all checks pass)
+```
+
+### JSON Output for Jenkins Parsing
+
+```json
+[
+  {"code":"DL3007","level":"warning","line":1,
+   "message":"Using latest is prone to errors..."},
+  {"code":"DL3020","level":"error","line":3,
+   "message":"Use COPY instead of ADD for files and folders"},
+  {"code":"DL3042","level":"warning","line":4,
+   "message":"Avoid use of cache directory with pip..."},
+  {"code":"DL3020","level":"error","line":5,
+   "message":"Use COPY instead of ADD for files and folders"}
+]
+```
+
+Machine-readable output lets Jenkins parse findings, publish them to a dashboard, or fail the build selectively on errors vs warnings.
+
+---
+
+## Vulnerable Pipeline
+
+```groovy
+// No linting — Dockerfile anti-patterns ship silently
+stage('Build') {
+    steps {
+        sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} ."
+        // GAP: hadolint never runs
+        // USER missing, ADD used, :latest tag — all pass silently
+    }
+}
+```
+
+---
+
+## Fixed Jenkins Pipeline Stage
+
+```groovy
+stage('Lint Dockerfile') {
+    steps {
+        script {
+            // Run hadolint with JSON output for parsing
+            def exitCode = sh(
+                script: """
+                    hadolint \
+                        --config .hadolint.yaml \
+                        --format json \
+                        Dockerfile > hadolint-results.json 2>&1
+                    echo \$?
+                """,
+                returnStdout: true
+            ).trim().readLines().last().toInteger()
+
+            // Parse results
+            def results = readJSON file: 'hadolint-results.json'
+
+            // Count errors (not warnings)
+            def errors = results.findAll { it.level == 'error' }
+            def warnings = results.findAll { it.level == 'warning' }
+
+            echo "Hadolint: ${errors.size()} errors, ${warnings.size()} warnings"
+
+            // Fail on errors, warn on warnings
+            if (errors.size() > 0) {
+                errors.each { e ->
+                    echo "ERROR: Line ${e.line} — ${e.code}: ${e.message}"
+                }
+                error("Dockerfile linting failed — ${errors.size()} errors found")
+            }
+
+            if (warnings.size() > 0) {
+                warnings.each { w ->
+                    echo "WARNING: Line ${w.line} — ${w.code}: ${w.message}"
+                }
+            }
+        }
+    }
+}
+```
+
+### Organisation-Wide .hadolint.yaml
+
+```yaml
+# .hadolint.yaml — commit this to every repo
+failure-threshold: error
+
+# Ignore rules that don't apply to your stack
+ignore:
+  - DL3008  # apt-get version pinning — handled by base image updates
+  - DL3009  # apt-get clean — handled in base image
+
+# Trusted registries — only allow pulls from these
+trustedRegistries:
+  - 123456789012.dkr.ecr.us-east-1.amazonaws.com
+  - python
+  - node
+```
+
+### Pre-Commit Hook for Local Development
+
+```bash
+# .pre-commit-config.yaml
+repos:
+  - repo: https://github.com/hadolint/hadolint
+    rev: v2.14.0
+    hooks:
+      - id: hadolint
+        args: [--config, .hadolint.yaml]
+```
+
+Catches issues before they reach Bitbucket. Jenkins is the backstop, not the first line.
+
+---
+
+## hadolint Rules Encountered in Phase 1 Labs
+
+| Rule | Level | What It Catches | Lab |
+|------|-------|----------------|-----|
+| DL3002 | Warning | Last USER is root (explicit) | Lab 01 |
+| DL3007 | Warning | Using :latest tag | Lab 02 |
+| DL3020 | Error | ADD instead of COPY | Lab 08 |
+| DL3008 | Warning | Unpinned apt-get versions | Labs 04, 07 |
+| DL3015 | Info | Missing --no-install-recommends | Lab 04 |
+| DL3042 | Warning | pip cache not disabled | Lab 04, 05 |
+| DL3025 | Warning | CMD/ENTRYPOINT not JSON form | — |
+
+---
+
+## Interview Corner
+
+**Q: We do code review — why do we need automated Dockerfile linting?**
+Code review focuses on application logic. Reviewers rarely scrutinise Dockerfile instructions at the rule level — a missing USER directive buried in 40 lines of RUN commands gets approved because the reviewer doesn't know DL3002. hadolint applies 50+ rules consistently on every commit, in under a second, with no reviewer fatigue. It catches things humans reliably miss.
+
+**Q: hadolint missed the missing USER in Lab 01 — should we still use it?**
+Yes. hadolint DL3002 fires when USER root is explicit. It misses the case where USER is absent entirely. This is a known gap — documented in Phase 1 — and is why we pair hadolint with dockle. Each tool catches what the other misses. The gap does not invalidate hadolint's value for the 50+ other rules it does catch reliably.
+
+**Q: Where in the Jenkins pipeline should hadolint run?**
+As the very first stage, before docker build. It costs nothing — hadolint reads the Dockerfile text, no network calls, no image pulls, runs in under a second. If linting fails, you save the time of building, pushing, and scanning a vulnerable image. Shift-left means catching issues at the cheapest possible point.
+
+---
+
+[← Lab 17](../lab17/lab17-slsa-provenance.md) | [Phase 2 README](../README.md)

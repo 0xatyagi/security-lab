@@ -1,0 +1,11 @@
+===== HADOLINT ON VULNERABLE DOCKERFILE =====
+/tmp/vuln-test.Dockerfile:1 DL3007 [1m[93mwarning[0m: Using latest is prone to errors if the image will ever update. Pin the version explicitly to a release tag
+/tmp/vuln-test.Dockerfile:3 DL3020 [1m[91merror[0m: Use COPY instead of ADD for files and folders
+/tmp/vuln-test.Dockerfile:4 DL3042 [1m[93mwarning[0m: Avoid use of cache directory with pip. Use `pip install --no-cache-dir <package>`
+/tmp/vuln-test.Dockerfile:5 DL3020 [1m[91merror[0m: Use COPY instead of ADD for files and folders
+Exit code: 1
+
+===== JSON OUTPUT FOR JENKINS PARSING =====
+[{"code":"DL3007","column":1,"file":"/tmp/vuln-test.Dockerfile","level":"warning","line":1,"message":"Using latest is prone to errors if the image will ever update. Pin the version explicitly to a release tag"},{"code":"DL3020","column":1,"file":"/tmp/vuln-test.Dockerfile","level":"error","line":3,"message":"Use COPY instead of ADD for files and folders"},{"code":"DL3042","column":1,"file":"/tmp/vuln-test.Dockerfile","level":"warning","line":4,"message":"Avoid use of cache directory with pip. Use `pip install --no-cache-dir <package>`"},{"code":"DL3020","column":1,"file":"/tmp/vuln-test.Dockerfile","level":"error","line":5,"message":"Use COPY instead of ADD for files and folders"}]
+===== FIXED DOCKERFILE PASSES =====
+Exit code: 0

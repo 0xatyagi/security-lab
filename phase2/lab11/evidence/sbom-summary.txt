@@ -1,0 +1,19 @@
+===== LAB 11: GENERATE SBOM =====
+SBOM generated
+
+===== SBOM SUMMARY =====
+Total packages: 103
+SPDX version: SPDX-2.3
+Document name: lab10-webapp
+
+First 10 packages:
+  Simple Launcher 1.1.0.14
+  Simple Launcher 1.1.0.14
+  Simple Launcher 1.1.0.14
+  Simple Launcher 1.1.0.14
+  Simple Launcher 1.1.0.14
+  Simple Launcher 1.1.0.14
+  adduser 3.152
+  apt 3.0.3
+  base-files 13.8+deb13u4
+  base-passwd 3.6.7

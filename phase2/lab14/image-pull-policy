@@ -1,0 +1,141 @@
+# Lab 14 — ImagePullPolicy Misconfiguration
+
+| Field | Value |
+|-------|-------|
+| **Risk Rating** | 🔴 High |
+| **MITRE ATT&CK** | T1610 — Deploy Container |
+| **Tools Used** | `aws ecs`, `aws ecr` |
+| **Lab Type** | Simulated |
+| **Lab Completed** | April 2026 |
+
+---
+
+## What Is This?
+
+ECS Fargate does not have the same `imagePullPolicy` concept as Kubernetes, but the equivalent risk exists through how task definitions reference images. When an ECS task definition references an image by mutable tag (e.g., `webapp:latest`) rather than digest, every task launch re-resolves the tag — which may now point to a different image than when the task was last deployed.
+
+Combined with mutable ECR tags (Lab 13), this means: tag gets silently overwritten, next ECS service scaling event or task restart pulls the new image, compromised version runs in production with no explicit deployment event.
+
+---
+
+## Vulnerable ECS Task Definition
+
+```json
+{
+  "family": "webapp",
+  "containerDefinitions": [{
+    "name": "webapp",
+    "image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/webapp:latest",
+    "portMappings": [{"containerPort": 8080}]
+  }]
+}
+```
+
+Problems:
+- References `:latest` — mutable tag
+- No digest pin — image can change between task launches
+- No way to detect if the image changed between deployments
+
+---
+
+## Detection
+
+```bash
+# Find all ECS task definitions using tag-based image references
+aws ecs list-task-definitions --status ACTIVE \
+    --query 'taskDefinitionArns[]' --output text | \
+    tr '\t' '\n' | while read arn; do
+        aws ecs describe-task-definition --task-definition "$arn" \
+            --query 'taskDefinition.containerDefinitions[].image' \
+            --output text | tr '\t' '\n' | while read img; do
+                if ! echo "$img" | grep -q '@sha256:'; then
+                    echo "TAG REFERENCE: $arn -> $img"
+                fi
+            done
+    done
+
+# Simulated output:
+# TAG REFERENCE: arn:aws:ecs:us-east-1:123456789012:task-definition/webapp:42
+#   -> 123456789012.dkr.ecr.us-east-1.amazonaws.com/webapp:latest
+```
+
+---
+
+## Fix — Always Deploy by Digest
+
+```groovy
+// Jenkins pipeline — capture digest after push, deploy by digest
+stage('Build and Push') {
+    steps {
+        script {
+            sh "docker build -t ${IMAGE_NAME}:${BUILD_NUMBER} ."
+            sh """
+                aws ecr get-login-password --region ${AWS_REGION} \
+                    | docker login --username AWS --password-stdin ${ECR_REGISTRY}
+                docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+            """
+            // Capture the digest immediately after push
+            env.IMAGE_DIGEST = sh(
+                script: """
+                    aws ecr describe-images \
+                        --repository-name ${ECR_REPO} \
+                        --image-ids imageTag=${BUILD_NUMBER} \
+                        --query 'imageDetails[0].imageDigest' \
+                        --output text
+                """,
+                returnStdout: true
+            ).trim()
+            echo "Image digest: ${IMAGE_DIGEST}"
+        }
+    }
+}
+
+stage('Deploy to ECS') {
+    steps {
+        script {
+            // Register new task definition with digest reference
+            def taskDefJson = """
+            {
+                "family": "${ECS_TASK_FAMILY}",
+                "containerDefinitions": [{
+                    "name": "webapp",
+                    "image": "${IMAGE_NAME}@${IMAGE_DIGEST}",
+                    "portMappings": [{"containerPort": 8080}],
+                    "essential": true
+                }],
+                "requiresCompatibilities": ["FARGATE"],
+                "networkMode": "awsvpc",
+                "cpu": "256",
+                "memory": "512"
+            }
+            """
+            // Deploy using digest — immutable reference
+            sh """
+                aws ecs register-task-definition \
+                    --cli-input-json '${taskDefJson}'
+
+                aws ecs update-service \
+                    --cluster ${ECS_CLUSTER} \
+                    --service ${ECS_SERVICE} \
+                    --task-definition ${ECS_TASK_FAMILY}
+            """
+        }
+    }
+}
+```
+
+### Fixed Task Definition
+
+```json
+{
+  "family": "webapp",
+  "containerDefinitions": [{
+    "name": "webapp",
+    "image": "123456789012.dkr.ecr.us-east-1.amazonaws.com/webapp@sha256:53f02d32...",
+    "portMappings": [{"containerPort": 8080}]
+  }]
+}
+```
+
+The digest reference is immutable. Even if the tag is overwritten in ECR, this task definition always pulls exactly the image that was deployed.
+

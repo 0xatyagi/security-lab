@@ -1,0 +1,177 @@
+# Lab 15 — Missing Registry Authentication
+
+| Field | Value |
+|-------|-------|
+| **Risk Rating** | 🔴 High |
+| **MITRE ATT&CK** | T1552.007 — Container API |
+| **CIS Benchmark** | CIS Kubernetes 5.5.3 — Minimize Access to Secrets |
+| **Tools Used** | `aws ecr`, `aws iam` |
+| **Lab Type** | Simulated |
+| **Lab Completed** | April 2026 |
+
+---
+
+## What Is This?
+
+The vulnerable Jenkinsfile uses hardcoded AWS access keys stored as Jenkins credentials to authenticate with ECR. This creates three problems: static credentials that never rotate, credentials that live in Jenkins credential store with broad access, and credentials that appear in CloudTrail as a named IAM user rather than a role (making audit trails harder to trace).
+
+The correct pattern for Jenkins running on EC2 or ECS is to use the instance/task IAM role — no credentials stored anywhere, no rotation needed, automatically scoped to what the role allows.
+
+---
+
+## Vulnerable Pattern
+
+```groovy
+// Vulnerable — hardcoded static credentials
+stage('Push to ECR') {
+    steps {
+        withCredentials([
+            string(credentialsId: 'aws-access-key-id',
+                   variable: 'AWS_ACCESS_KEY_ID'),
+            string(credentialsId: 'aws-secret-access-key',
+                   variable: 'AWS_SECRET_ACCESS_KEY')
+        ]) {
+            sh """
+                aws ecr get-login-password --region ${AWS_REGION} \
+                    | docker login --username AWS \
+                      --password-stdin ${ECR_REGISTRY}
+                docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+            """
+        }
+    }
+}
+```
+
+Problems:
+- Static keys stored in Jenkins — rotation burden
+- If Jenkins credential store is compromised, attacker gets long-lived AWS access
+- Keys scoped to a user, not a role — harder to audit and restrict
+- Keys may have broader permissions than just ECR push
+
+---
+
+## Detection
+
+```bash
+# Find IAM users with ECR permissions — should be zero in production
+aws iam list-users --query 'Users[].UserName' --output text | \
+    tr '\t' '\n' | while read user; do
+        policies=$(aws iam list-user-policies --user-name "$user" \
+            --query 'PolicyNames' --output text)
+        attached=$(aws iam list-attached-user-policies --user-name "$user" \
+            --query 'AttachedPolicies[].PolicyName' --output text)
+        if echo "$policies $attached" | grep -qi "ecr"; then
+            echo "IAM USER WITH ECR ACCESS: $user"
+        fi
+    done
+
+# Check Jenkins node IAM role — what does it have access to?
+aws iam get-role --role-name jenkins-node-role \
+    --query 'Role.AssumeRolePolicyDocument'
+```
+
+---
+
+## Fix — IAM Role for Jenkins EC2 Node
+
+```json
+// IAM role policy for Jenkins EC2 node — ECR push only, scoped to specific repo
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "ECRAuth",
+      "Effect": "Allow",
+      "Action": "ecr:GetAuthorizationToken",
+      "Resource": "*"
+    },
+    {
+      "Sid": "ECRPush",
+      "Effect": "Allow",
+      "Action": [
+        "ecr:BatchCheckLayerAvailability",
+        "ecr:PutImage",
+        "ecr:InitiateLayerUpload",
+        "ecr:UploadLayerPart",
+        "ecr:CompleteLayerUpload",
+        "ecr:DescribeImages",
+        "ecr:DescribeRepositories"
+      ],
+      "Resource": "arn:aws:ecr:us-east-1:123456789012:repository/webapp"
+    }
+  ]
+}
+```
+
+### Fixed Pipeline — No Credentials Needed
+
+```groovy
+// Fixed — uses EC2 instance role automatically
+stage('Push to ECR') {
+    steps {
+        sh """
+            # No withCredentials block needed
+            # AWS CLI uses the EC2 instance role automatically
+            aws ecr get-login-password --region ${AWS_REGION} \
+                | docker login --username AWS \
+                  --password-stdin ${ECR_REGISTRY}
+
+            docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+        """
+    }
+}
+```
+
+### For Jenkins Running on ECS Fargate
+
+```json
+// ECS task role for Jenkins agent — same permissions, attached to task
+{
+  "Version": "2012-10-17",
+  "Statement": [{
+    "Effect": "Allow",
+    "Principal": {
+      "Service": "ecs-tasks.amazonaws.com"
+    },
+    "Action": "sts:AssumeRole"
+  }]
+}
+```
+
+### Least Privilege — Separate Roles Per Repo
+
+```hcl
+# Terraform — separate IAM role per ECR repository
+resource "aws_iam_role" "jenkins_webapp_push" {
+  name = "jenkins-webapp-ecr-push"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "ec2.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "ecr_push" {
+  role = aws_iam_role.jenkins_webapp_push.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["ecr:PutImage", "ecr:InitiateLayerUpload",
+                  "ecr:UploadLayerPart", "ecr:CompleteLayerUpload",
+                  "ecr:BatchCheckLayerAvailability", "ecr:DescribeImages"]
+      Resource = aws_ecr_repository.webapp.arn
+    }, {
+      Effect   = "Allow"
+      Action   = "ecr:GetAuthorizationToken"
+      Resource = "*"
+    }]
+  })
+}
+```
+
+-

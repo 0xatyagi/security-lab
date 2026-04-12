@@ -1,0 +1,7 @@
+===== STEP 1: CONFIRM NO SIGNATURE EXISTS =====
+WARNING: Skipping tlog verification is an insecure practice that lacks transparency and auditability verification for the signature.
+Error: no signatures found
+error during command execution: no signatures found
+
+===== STEP 2: IMAGE DIGEST =====
+sha256:53f02d3251ca0da44b4258a1fdc44d541dde541219d81ab3cdf6baf9bf0a5ad6
