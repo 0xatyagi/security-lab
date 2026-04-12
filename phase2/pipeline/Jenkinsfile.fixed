@@ -1,0 +1,340 @@
+// Jenkinsfile.fixed
+// Hardened Jenkins + Bitbucket + ECR pipeline — all 9 supply chain gaps resolved
+// Each fix references the lab that covers it
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION      = 'us-east-1'
+        AWS_ACCOUNT_ID  = '123456789012'
+        ECR_REPO        = 'webapp'
+        ECR_REGISTRY    = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
+        IMAGE_NAME      = "${ECR_REGISTRY}/${ECR_REPO}"
+        ECS_CLUSTER     = 'production'
+        ECS_SERVICE     = 'webapp'
+        ECS_TASK_FAMILY = 'webapp'
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        // FIX: Lab 18 — Dockerfile linting as first stage
+        // Catches anti-patterns before any image is built
+        stage('Lint Dockerfile') {
+            steps {
+                script {
+                    def results = sh(
+                        script: 'hadolint --config .hadolint.yaml --format json Dockerfile',
+                        returnStdout: true,
+                        returnStatus: false
+                    )
+                    def findings = readJSON text: (results ?: '[]')
+                    def errors = findings.findAll { it.level == 'error' }
+
+                    if (errors.size() > 0) {
+                        errors.each { e ->
+                            echo "LINT ERROR: Line ${e.line} — ${e.code}: ${e.message}"
+                        }
+                        error("Dockerfile linting failed — ${errors.size()} error(s)")
+                    }
+                    echo "Dockerfile linting passed"
+                }
+            }
+        }
+
+        stage('Build') {
+            steps {
+                script {
+                    // FIX: Lab 02, Lab 13 — tag with build number, not :latest
+                    // ECR configured with IMMUTABLE tags (see ecr-fixed.tf)
+                    sh """
+                        docker build \
+                            -t ${IMAGE_NAME}:${BUILD_NUMBER} \
+                            --label "git.commit=${GIT_COMMIT}" \
+                            --label "jenkins.build=${BUILD_NUMBER}" \
+                            --label "jenkins.job=${JOB_NAME}" \
+                            .
+                    """
+                }
+            }
+        }
+
+        // FIX: Lab 05, Lab 16 — vulnerability scan before push
+        // Hard gate: blocks on fixable HIGH/CRITICAL CVEs
+        stage('Scan Image') {
+            steps {
+                script {
+                    def exitCode = sh(
+                        script: """
+                            trivy image \
+                                --severity HIGH,CRITICAL \
+                                --exit-code 1 \
+                                --ignore-unfixed \
+                                --no-progress \
+                                --format sarif \
+                                --output trivy-results.sarif \
+                                ${IMAGE_NAME}:${BUILD_NUMBER}
+                        """,
+                        returnStatus: true
+                    )
+
+                    // Archive SARIF for audit trail
+                    archiveArtifacts artifacts: 'trivy-results.sarif',
+                                     allowEmptyArchive: true
+
+                    if (exitCode != 0) {
+                        error("Security gate failed — fixable HIGH/CRITICAL CVEs found")
+                    }
+                    echo "Vulnerability scan passed"
+                }
+            }
+        }
+
+        // FIX: Lab 15 — no hardcoded credentials
+        // Jenkins node uses EC2 instance role with scoped ECR permissions
+        stage('Push to ECR') {
+            steps {
+                script {
+                    sh """
+                        aws ecr get-login-password --region ${AWS_REGION} \
+                            | docker login --username AWS \
+                              --password-stdin ${ECR_REGISTRY}
+
+                        docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+                    """
+
+                    // FIX: Lab 14 — capture digest for immutable deployment reference
+                    env.IMAGE_DIGEST = sh(
+                        script: """
+                            aws ecr describe-images \
+                                --repository-name ${ECR_REPO} \
+                                --image-ids imageTag=${BUILD_NUMBER} \
+                                --query 'imageDetails[0].imageDigest' \
+                                --output text \
+                                --region ${AWS_REGION}
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    echo "Pushed: ${IMAGE_NAME}@${IMAGE_DIGEST}"
+                }
+            }
+        }
+
+        // FIX: Lab 16 — wait for ECR scan, gate on results
+        stage('ECR Scan Gate') {
+            steps {
+                script {
+                    sh """
+                        aws ecr wait image-scan-complete \
+                            --repository-name ${ECR_REPO} \
+                            --image-id imageDigest=${IMAGE_DIGEST} \
+                            --region ${AWS_REGION}
+                    """
+
+                    def critical = sh(
+                        script: """
+                            aws ecr describe-image-scan-findings \
+                                --repository-name ${ECR_REPO} \
+                                --image-id imageDigest=${IMAGE_DIGEST} \
+                                --query 'imageScanFindings.findingSeverityCounts.CRITICAL' \
+                                --output text \
+                                --region ${AWS_REGION}
+                        """,
+                        returnStdout: true
+                    ).trim()
+
+                    if (critical != 'None' && critical.toInteger() > 0) {
+                        error("ECR scan found ${critical} CRITICAL vulnerabilities")
+                    }
+                    echo "ECR scan passed"
+                }
+            }
+        }
+
+        // FIX: Lab 11 — generate and attach SBOM
+        stage('Generate SBOM') {
+            steps {
+                script {
+                    sh """
+                        syft ${IMAGE_NAME}:${BUILD_NUMBER} \
+                            -o spdx-json \
+                            > sbom-spdx.json
+
+                        syft ${IMAGE_NAME}:${BUILD_NUMBER} \
+                            -o cyclonedx-json \
+                            > sbom-cdx.json
+                    """
+
+                    archiveArtifacts artifacts: 'sbom-*.json', fingerprint: true
+
+                    withCredentials([file(credentialsId: 'cosign-private-key',
+                                         variable: 'COSIGN_KEY')]) {
+                        sh """
+                            COSIGN_PASSWORD='' cosign attest \
+                                --key \${COSIGN_KEY} \
+                                --predicate sbom-spdx.json \
+                                --type spdxjson \
+                                ${IMAGE_NAME}@${IMAGE_DIGEST}
+                        """
+                    }
+                    echo "SBOM attached to image"
+                }
+            }
+        }
+
+        // FIX: Lab 10 — sign image with cosign
+        stage('Sign Image') {
+            steps {
+                withCredentials([file(credentialsId: 'cosign-private-key',
+                                     variable: 'COSIGN_KEY')]) {
+                    sh """
+                        # Sign by digest — not tag
+                        COSIGN_PASSWORD='' cosign sign \
+                            --key \${COSIGN_KEY} \
+                            ${IMAGE_NAME}@${IMAGE_DIGEST}
+                    """
+                }
+                echo "Image signed with cosign"
+            }
+        }
+
+        // FIX: Lab 17 — generate and attach SLSA provenance
+        stage('Generate Provenance') {
+            steps {
+                script {
+                    def provenance = [
+                        _type        : "https://slsa.dev/provenance/v0.2",
+                        subject      : [[
+                            name  : "${IMAGE_NAME}",
+                            digest: [sha256: "${IMAGE_DIGEST}".replace("sha256:", "")]
+                        ]],
+                        predicateType: "https://slsa.dev/provenance/v0.2",
+                        predicate    : [
+                            builder   : [id: "https://jenkins.internal.corp/job/${JOB_NAME}"],
+                            buildType : "https://jenkins.io/buildType/docker@v1",
+                            invocation: [
+                                configSource: [
+                                    uri       : scm.getUserRemoteConfigs()[0].getUrl(),
+                                    digest    : [sha1: "${GIT_COMMIT}"],
+                                    entryPoint: "Jenkinsfile"
+                                ],
+                                parameters: [
+                                    buildNumber: "${BUILD_NUMBER}",
+                                    jobName    : "${JOB_NAME}",
+                                    branch     : "${GIT_BRANCH}"
+                                ]
+                            ],
+                            metadata  : [
+                                buildStartedOn : "${BUILD_TIMESTAMP}",
+                                buildFinishedOn: sh(
+                                    script: 'date -u +"%Y-%m-%dT%H:%M:%SZ"',
+                                    returnStdout: true
+                                ).trim(),
+                                completeness   : [
+                                    parameters: true,
+                                    environment: false,
+                                    materials  : true
+                                ]
+                            ],
+                            materials : [[
+                                uri   : scm.getUserRemoteConfigs()[0].getUrl(),
+                                digest: [sha1: "${GIT_COMMIT}"]
+                            ]]
+                        ]
+                    ]
+
+                    writeJSON file: 'provenance.json', json: provenance, pretty: 4
+                    archiveArtifacts artifacts: 'provenance.json', fingerprint: true
+
+                    withCredentials([file(credentialsId: 'cosign-private-key',
+                                         variable: 'COSIGN_KEY')]) {
+                        sh """
+                            COSIGN_PASSWORD='' cosign attest \
+                                --key \${COSIGN_KEY} \
+                                --predicate provenance.json \
+                                --type slsaprovenance \
+                                ${IMAGE_NAME}@${IMAGE_DIGEST}
+                        """
+                    }
+                    echo "SLSA provenance attached"
+                }
+            }
+        }
+
+        // FIX: Lab 10 — verify signature before deploying
+        stage('Verify Before Deploy') {
+            steps {
+                withCredentials([file(credentialsId: 'cosign-public-key',
+                                     variable: 'COSIGN_PUB')]) {
+                    sh """
+                        cosign verify \
+                            --key \${COSIGN_PUB} \
+                            ${IMAGE_NAME}@${IMAGE_DIGEST}
+                    """
+                }
+                echo "Signature verified"
+            }
+        }
+
+        // FIX: Lab 14 — deploy by digest, not tag
+        stage('Deploy to ECS') {
+            steps {
+                script {
+                    sh """
+                        aws ecs register-task-definition \
+                            --family ${ECS_TASK_FAMILY} \
+                            --container-definitions '[{
+                                "name": "webapp",
+                                "image": "${IMAGE_NAME}@${IMAGE_DIGEST}",
+                                "portMappings": [{"containerPort": 8080}],
+                                "essential": true
+                            }]' \
+                            --requires-compatibilities FARGATE \
+                            --network-mode awsvpc \
+                            --cpu 256 \
+                            --memory 512 \
+                            --region ${AWS_REGION}
+
+                        aws ecs update-service \
+                            --cluster ${ECS_CLUSTER} \
+                            --service ${ECS_SERVICE} \
+                            --task-definition ${ECS_TASK_FAMILY} \
+                            --region ${AWS_REGION}
+                    """
+
+                    echo "Deployed: ${IMAGE_NAME}@${IMAGE_DIGEST}"
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            sh 'docker system prune -f || true'
+            sh 'rm -f sbom-*.json provenance.json trivy-results.sarif || true'
+        }
+        failure {
+            echo "Pipeline failed — image NOT deployed to ECR or ECS"
+        }
+        success {
+            echo """
+Pipeline complete. Supply chain controls applied:
+  Linting    : hadolint (Lab 18)
+  Scanning   : trivy + ECR Inspector (Labs 05, 16)
+  Signing    : cosign key-based (Lab 10)
+  SBOM       : syft SPDX + CycloneDX (Lab 11)
+  Provenance : SLSA v0.2 (Lab 17)
+  Deployment : digest reference (Lab 14)
+  Auth       : EC2 instance role (Lab 15)
+  Registry   : IMMUTABLE tags + lifecycle (Labs 13, 16)
+"""
+        }
+    }
+}

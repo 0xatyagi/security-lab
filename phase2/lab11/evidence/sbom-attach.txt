@@ -1,0 +1,21 @@
+===== ATTACH SBOM TO IMAGE =====
+WARNING: Image reference localhost:5001/lab10-webapp:v1.0.0 uses a tag, not a digest, to identify the image to sign.
+    This can lead you to sign a different image than the intended one. Please use a
+    digest (example.com/ubuntu@sha256:abc123...) rather than tag
+    (example.com/ubuntu:latest) for the input to cosign. The ability to refer to
+    images by tag will be removed in a future release.
+
+Using payload from: lab11/evidence/sbom.spdx.json
+Enter password for private key: 
+Signing artifact...
+
+===== LIST REGISTRY — SBOM ARTIFACT VISIBLE =====
+sha256-53f02d3251ca0da44b4258a1fdc44d541dde541219d81ab3cdf6baf9bf0a5ad6
+v1.0.0
+
+===== QUERY SBOM — FIND SPECIFIC PACKAGE =====
+Searching SBOM for flask...
+Flask packages found: 1
+  flask 3.0.3
+
+Total library packages: 0

@@ -1,0 +1,26 @@
+===== STEP 4: VERIFY SIGNATURE EXISTS =====
+WARNING: Skipping tlog verification is an insecure practice that lacks transparency and auditability verification for the signature.
+
+Verification for localhost:5001/lab10-webapp:v1.0.0 --
+The following checks were performed on each of these signatures:
+  - The cosign claims were validated
+  - Existence of the claims in the transparency log was verified offline
+  - The signatures were verified against the specified public key
+
+[{"critical":{"identity":{"docker-reference":"localhost:5001/lab10-webapp:v1.0.0"},"image":{"docker-manifest-digest":"sha256:53f02d3251ca0da44b4258a1fdc44d541dde541219d81ab3cdf6baf9bf0a5ad6"},"type":"https://sigstore.dev/cosign/sign/v1"},"optional":{}}]
+
+===== STEP 5: SIGN BY DIGEST (best practice) =====
+Digest: sha256:53f02d3251ca0da44b4258a1fdc44d541dde541219d81ab3cdf6baf9bf0a5ad6
+WARNING: Skipping tlog verification is an insecure practice that lacks transparency and auditability verification for the signature.
+
+Verification for localhost:5001/lab10-webapp@sha256:53f02d3251ca0da44b4258a1fdc44d541dde541219d81ab3cdf6baf9bf0a5ad6 --
+The following checks were performed on each of these signatures:
+  - The cosign claims were validated
+  - Existence of the claims in the transparency log was verified offline
+  - The signatures were verified against the specified public key
+
+[{"critical":{"identity":{"docker-reference":"localhost:5001/lab10-webapp@sha256:53f02d3251ca0da44b4258a1fdc44d541dde541219d81ab3cdf6baf9bf0a5ad6"},"image":{"docker-manifest-digest":"sha256:53f02d3251ca0da44b4258a1fdc44d541dde541219d81ab3cdf6baf9bf0a5ad6"},"type":"https://sigstore.dev/cosign/sign/v1"},"optional":{}}]
+
+===== STEP 6: LIST SIGNATURES IN REGISTRY =====
+sha256-53f02d3251ca0da44b4258a1fdc44d541dde541219d81ab3cdf6baf9bf0a5ad6
+v1.0.0

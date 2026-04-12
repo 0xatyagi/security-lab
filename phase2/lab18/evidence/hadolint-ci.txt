@@ -1,0 +1,7 @@
+===== LAB 18: HADOLINT ON DOCKERFILE =====
+Exit code: 0
+
+===== HADOLINT JSON OUTPUT (for Jenkins parsing) =====
+[]
+===== HADOLINT WITH CUSTOM CONFIG =====
+Exit code with config: 0

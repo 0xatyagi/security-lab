@@ -1,0 +1,164 @@
+# Lab 16 — ECR Missing Scanning and Lifecycle
+
+| Field | Value |
+|-------|-------|
+| **Risk Rating** | 🟡 Medium |
+| **MITRE ATT&CK** | T1190 — Exploit Public-Facing Application |
+| **CIS Benchmark** | CIS AWS 2.1.3 — ECR Image Scanning |
+| **Tools Used** | `aws ecr`, `aws inspector2` |
+| **Lab Type** | Simulated |
+| **Lab Completed** | April 2026 |
+
+---
+
+## What Is This?
+
+ECR repositories default to `scan_on_push: false`. Images sit in the registry for months without a vulnerability scan. When a CVE is published, there is no way to know which images are affected without manually triggering scans across every repository.
+
+The second gap is lifecycle policies. Without them, ECR repositories accumulate images indefinitely. Old untagged images from months ago remain deployable. Registry storage costs grow unchecked. Log4Shell-era images sit there, pullable by anyone with ECR access.
+
+ECR offers two scanning modes: **Basic** (Clair-based, OS packages only) and **Enhanced** (Amazon Inspector, covers OS packages and application dependencies — npm, pip, Maven). Most accounts use basic scanning, which misses application-level CVEs entirely.
+
+---
+
+## Vulnerable Configuration
+
+```bash
+# Check current scan configuration
+aws ecr describe-repositories \
+    --repository-names webapp \
+    --query 'repositories[0].imageScanningConfiguration'
+
+# Simulated output:
+# {
+#     "scanOnPush": false
+# }
+
+# Check for lifecycle policy
+aws ecr get-lifecycle-policy --repository-name webapp
+# An error occurred (LifecyclePolicyNotFoundException): ...
+# Lifecycle policy does not exist for the repository
+
+# Check how many unscanned images exist
+aws ecr describe-images --repository-name webapp \
+    --query 'length(imageDetails[?imageScanStatus==`null`])'
+# 47
+# 47 images have never been scanned
+```
+
+---
+
+## Detection
+
+```bash
+# Audit all repos for missing scan configuration
+for repo in $(aws ecr describe-repositories \
+    --query 'repositories[].repositoryName' --output text); do
+    scan=$(aws ecr describe-repositories \
+        --repository-names "$repo" \
+        --query 'repositories[0].imageScanningConfiguration.scanOnPush' \
+        --output text)
+    lifecycle=$(aws ecr get-lifecycle-policy \
+        --repository-name "$repo" 2>/dev/null || echo "MISSING")
+    echo "$repo: scan_on_push=$scan lifecycle=$lifecycle"
+done
+
+# Simulated output:
+# webapp: scan_on_push=False lifecycle=MISSING
+# auth-service: scan_on_push=False lifecycle=MISSING
+# frontend: scan_on_push=True lifecycle=PRESENT
+```
+
+---
+
+## Fix
+
+### Enable Scan on Push and Enhanced Scanning
+
+```bash
+# Enable enhanced scanning (Amazon Inspector) for the account
+aws inspector2 enable --resource-types ECR
+
+# Enable scan on push per repository
+aws ecr put-image-scanning-configuration \
+    --repository-name webapp \
+    --image-scanning-configuration scanOnPush=true
+```
+
+### Terraform Fix
+
+See `terraform/ecr-fixed.tf` — includes `scan_on_push = true`, lifecycle policy, and KMS encryption.
+
+### Jenkins Pipeline — Gate on ECR Scan Results
+
+```groovy
+stage('Wait for ECR Scan') {
+    steps {
+        script {
+            // Wait for ECR scan to complete after push
+            sh """
+                aws ecr wait image-scan-complete \
+                    --repository-name ${ECR_REPO} \
+                    --image-id imageDigest=${IMAGE_DIGEST} \
+                    --region ${AWS_REGION}
+            """
+
+            // Check scan results
+            def critical = sh(
+                script: """
+                    aws ecr describe-image-scan-findings \
+                        --repository-name ${ECR_REPO} \
+                        --image-id imageDigest=${IMAGE_DIGEST} \
+                        --query 'imageScanFindings.findingSeverityCounts.CRITICAL' \
+                        --output text
+                """,
+                returnStdout: true
+            ).trim()
+
+            if (critical != 'None' && critical.toInteger() > 0) {
+                error("SECURITY GATE: ${critical} CRITICAL CVEs found in ECR scan")
+            }
+            echo "ECR scan passed — no critical vulnerabilities"
+        }
+    }
+}
+```
+
+### EventBridge Alert for Critical Findings
+
+```hcl
+# Terraform — alert when ECR scan finds critical CVEs
+resource "aws_cloudwatch_event_rule" "ecr_critical" {
+  name = "ecr-critical-findings"
+  event_pattern = jsonencode({
+    source      = ["aws.ecr"]
+    detail-type = ["ECR Image Scan"]
+    detail = {
+      scan-status            = ["COMPLETE"]
+      finding-severity-counts = {
+        CRITICAL = [{ numeric = [">", 0] }]
+      }
+    }
+  })
+}
+
+resource "aws_cloudwatch_event_target" "sns" {
+  rule = aws_cloudwatch_event_rule.ecr_critical.name
+  arn  = aws_sns_topic.security_alerts.arn
+}
+```
+
+---
+
+## Basic vs Enhanced Scanning
+
+| Feature | Basic (Clair) | Enhanced (Inspector) |
+|---------|--------------|---------------------|
+| OS packages | Yes | Yes |
+| Application deps (npm, pip) | No | Yes |
+| Continuous re-scan | No — push only | Yes — rescans when new CVEs published |
+| Integration | ECR native | Amazon Inspector service |
+| Cost | Free | Inspector pricing |
+
+For production workloads, Enhanced scanning is the correct choice. Basic scanning misses the application-level CVEs that are often the most exploitable.
+

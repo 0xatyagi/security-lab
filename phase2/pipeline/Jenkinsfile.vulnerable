@@ -1,0 +1,84 @@
+// Jenkinsfile.vulnerable
+// A typical Jenkins + Bitbucket + ECR pipeline with 9 supply chain gaps
+// Each gap is marked with a comment referencing the lab that covers it
+
+pipeline {
+    agent any
+
+    environment {
+        AWS_REGION      = 'us-east-1'
+        AWS_ACCOUNT_ID  = '123456789012'
+        ECR_REPO        = 'webapp'
+        IMAGE_NAME      = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com/${ECR_REPO}"
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        // GAP: Lab 18 — No Dockerfile linting step
+        // hadolint never runs — misconfigurations ship silently
+
+        stage('Build') {
+            steps {
+                script {
+                    // GAP: Lab 02 — image tagged with :latest (mutable)
+                    // GAP: Lab 13 — ECR repo has MUTABLE tag mutability
+                    sh """
+                        docker build \
+                            -t ${IMAGE_NAME}:latest \
+                            -t ${IMAGE_NAME}:${BUILD_NUMBER} \
+                            .
+                    """
+                }
+            }
+        }
+
+        // GAP: Lab 05 / Lab 16 — No vulnerability scanning gate
+        // Images with HIGH/CRITICAL CVEs push to ECR without any check
+
+        stage('Push to ECR') {
+            steps {
+                script {
+                    // GAP: Lab 15 — Authentication uses hardcoded credentials
+                    // Should use IAM instance role or IRSA, not static keys
+                    withCredentials([
+                        string(credentialsId: 'aws-access-key-id',     variable: 'AWS_ACCESS_KEY_ID'),
+                        string(credentialsId: 'aws-secret-access-key',  variable: 'AWS_SECRET_ACCESS_KEY')
+                    ]) {
+                        sh """
+                            aws ecr get-login-password --region ${AWS_REGION} \
+                                | docker login --username AWS \
+                                  --password-stdin ${IMAGE_NAME}
+
+                            docker push ${IMAGE_NAME}:latest
+                            docker push ${IMAGE_NAME}:${BUILD_NUMBER}
+                        """
+                    }
+                }
+            }
+        }
+
+        // GAP: Lab 10 — No image signing (Cosign)
+        // Anyone with ECR push access can overwrite tags silently
+
+        // GAP: Lab 11 — No SBOM generation or attachment
+        // Cannot answer "which images contain libexpat?" during an incident
+
+        // GAP: Lab 12 — ECR repository policy not checked
+        // Repo may be publicly accessible (Principal: "*")
+
+        // GAP: Lab 17 — No build provenance (SLSA)
+        // Cannot prove this image was built by CI and not a developer laptop
+    }
+
+    post {
+        always {
+            sh 'docker system prune -f || true'
+        }
+    }
+}

@@ -1,0 +1,140 @@
+# Lab 13 — Mutable Image Tags in Registry
+
+| Field | Value |
+|-------|-------|
+| **Risk Rating** | 🔴 High |
+| **MITRE ATT&CK** | T1525 — Implant Internal Image |
+| **CIS Benchmark** | CIS Docker 5.8 — Use Immutable Tags |
+| **Tools Used** | `aws ecr`, `crane`, `cosign` |
+| **Lab Type** | Simulated (requires AWS CLI) |
+| **Lab Completed** | April 2026 |
+
+---
+
+## What Is This?
+
+ECR repositories default to `MUTABLE` tag mutability. This means any push to an existing tag silently overwrites it. `webapp:v1.0.0` deployed to production today can point to a completely different image tomorrow — no error, no alert, no audit log entry that says "this tag now points to a different digest."
+
+This is tag tampering. An attacker with ECR push access overwrites a trusted version tag with a backdoored image. On the next ECS task restart, the new image is pulled silently.
+
+Even without malicious intent, mutable tags break reproducibility. A rollback to `webapp:v1.0.0` no longer guarantees the same image that was originally deployed.
+
+---
+
+## Vulnerable Configuration
+
+```hcl
+# Default ECR — mutable tags
+resource "aws_ecr_repository" "webapp" {
+  name                 = "webapp"
+  image_tag_mutability = "MUTABLE"  # default — dangerous
+}
+```
+
+### Simulated Attack
+
+```bash
+# Step 1 — record current digest for v1.0.0
+crane digest 123456789012.dkr.ecr.us-east-1.amazonaws.com/webapp:v1.0.0
+# sha256:aabbccdd11223344...
+
+# Step 2 — attacker overwrites the tag
+docker build -t 123456789012.dkr.ecr.us-east-1.amazonaws.com/webapp:v1.0.0 \
+    Dockerfile.backdoor .
+docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/webapp:v1.0.0
+# v1.0.0: digest: sha256:ff00ff00... (different digest — no error raised)
+
+# Step 3 — digest changed silently
+crane digest 123456789012.dkr.ecr.us-east-1.amazonaws.com/webapp:v1.0.0
+# sha256:ff00ff00... (completely different image, same tag)
+```
+
+---
+
+## Detection
+
+```bash
+# Monitor for tag overwrites via CloudTrail
+aws cloudtrail lookup-events \
+    --lookup-attributes AttributeKey=EventName,AttributeValue=PutImage \
+    --query 'Events[].{Time:EventTime,User:Username,Repo:CloudTrailEvent}' \
+    --output table
+
+# Detect digest drift — compare running digest against known-good
+EXPECTED="sha256:aabbccdd11223344..."
+CURRENT=$(crane digest \
+    123456789012.dkr.ecr.us-east-1.amazonaws.com/webapp:v1.0.0)
+
+if [ "$CURRENT" != "$EXPECTED" ]; then
+    echo "ALERT: Tag v1.0.0 digest changed — possible tampering"
+    echo "Expected: $EXPECTED"
+    echo "Current:  $CURRENT"
+fi
+```
+
+### Simulated CloudTrail Evidence
+
+```
+# aws cloudtrail lookup-events (simulated output)
+Time                  User          Action
+2026-04-12T14:30:00Z  attacker-ci   PutImage — webapp:v1.0.0
+2026-04-12T09:00:00Z  jenkins-role  PutImage — webapp:v1.0.0
+
+# Two PutImage events for the same tag — second one overwrote the first
+```
+
+---
+
+## Fix
+
+```hcl
+# ecr-fixed.tf — immutable tags
+resource "aws_ecr_repository" "webapp" {
+  name                 = "webapp"
+  image_tag_mutability = "IMMUTABLE"
+}
+```
+
+With `IMMUTABLE`, a second push to the same tag fails:
+
+```bash
+# Simulated output after enabling immutable tags
+docker push 123456789012.dkr.ecr.us-east-1.amazonaws.com/webapp:v1.0.0
+# Error: tag v1.0.0 is immutable, cannot be overwritten
+```
+
+### Jenkins Pipeline — Reference Images by Digest
+
+```groovy
+stage('Deploy') {
+    steps {
+        script {
+            // Always deploy by digest — not tag
+            // Digest is captured after push in the Build stage
+            sh """
+                # Update ECS task definition with digest reference
+                aws ecs register-task-definition \
+                    --family webapp \
+                    --container-definitions '[{
+                        "name": "webapp",
+                        "image": "${IMAGE_NAME}@${IMAGE_DIGEST}",
+                        "portMappings": [{"containerPort": 8080}]
+                    }]'
+            """
+        }
+    }
+}
+```
+
+### Enforce Digest References in ECS Task Definitions
+
+```bash
+# Audit running tasks for tag-based image references
+aws ecs list-tasks --cluster production | \
+    xargs -I{} aws ecs describe-tasks --cluster production --tasks {} \
+    --query 'tasks[].containers[].image' --output text | \
+    grep -v '@sha256:' | \
+    while read img; do
+        echo "TAG REFERENCE (not digest): $img"
+    done
+```
